@@ -127,35 +127,32 @@ if ($search !== '') {
     $alertWhere[] = ['OR' => $alertSearchCriteria];
 }
 
-$countSnapshots = static function (string $table, array $where = []) use ($DB): int {
-    $criteria = ['FROM' => $table, 'COUNT' => 'total'];
-    if ($where !== []) {
-        $criteria['WHERE'] = $where;
-    }
-    $iterator = $DB->request($criteria);
-    $row = $iterator->current();
-    return (int) ($row['total'] ?? 0);
-};
-
 $stats = [
     'computers' => 0,
-    'snapshots' => $countSnapshots('glpi_plugin_controlhw_snapshots'),
-    'alerts' => $countSnapshots('glpi_plugin_controlhw_alerts'),
-    'pending' => $countSnapshots('glpi_plugin_controlhw_alerts', ['notification_status' => 'pending']),
+    'snapshots' => 0,
+    'alerts' => 0,
+    'pending' => 0,
 ];
+
+$seenComputers = [];
 foreach ($DB->request([
     'SELECT' => ['computers_id'],
-    'DISTINCT' => true,
     'FROM' => 'glpi_plugin_controlhw_snapshots',
 ]) as $computerRow) {
-    $stats['computers']++;
+    $seenComputers[(int) $computerRow['computers_id']] = true;
+    $stats['snapshots']++;
 }
+$stats['computers'] = count($seenComputers);
 
-$changesCountQuery = new QuerySubQuery([
-    'SELECT' => ['COUNT' => 'total'],
-    'FROM' => 'glpi_plugin_controlhw_alerts AS alert_count',
-    'WHERE' => ['alert_count.snapshots_id' => new QueryExpression('s.id')],
-], 'changes_count');
+foreach ($DB->request([
+    'SELECT' => ['id', 'notification_status'],
+    'FROM' => 'glpi_plugin_controlhw_alerts',
+]) as $alertCountRow) {
+    $stats['alerts']++;
+    if ($alertCountRow['notification_status'] === 'pending') {
+        $stats['pending']++;
+    }
+}
 
 $historyCriteria = [
     'SELECT' => [
@@ -164,7 +161,6 @@ $historyCriteria = [
         'c.name AS computer_name',
         's.components_count',
         's.date_creation',
-        $changesCountQuery,
     ],
     'FROM' => 'glpi_plugin_controlhw_snapshots AS s',
     'INNER JOIN' => [
@@ -177,8 +173,27 @@ $historyCriteria = [
     'LIMIT' => 100,
 ];
 $historyRows = [];
+$snapshotIds = [];
 foreach ($DB->request($historyCriteria) as $row) {
+    $row['changes_count'] = 0;
     $historyRows[] = $row;
+    $snapshotIds[] = (int) $row['id'];
+}
+
+if ($snapshotIds !== []) {
+    $changesBySnapshot = [];
+    foreach ($DB->request([
+        'SELECT' => ['snapshots_id'],
+        'FROM' => 'glpi_plugin_controlhw_alerts',
+        'WHERE' => ['snapshots_id' => $snapshotIds],
+    ]) as $changeRow) {
+        $snapshotId = (int) $changeRow['snapshots_id'];
+        $changesBySnapshot[$snapshotId] = ($changesBySnapshot[$snapshotId] ?? 0) + 1;
+    }
+    foreach ($historyRows as &$historyRow) {
+        $historyRow['changes_count'] = $changesBySnapshot[(int) $historyRow['id']] ?? 0;
+    }
+    unset($historyRow);
 }
 
 $alertsCriteria = [
