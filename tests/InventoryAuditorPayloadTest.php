@@ -23,5 +23,14 @@ controlhwAssert(
     $extract->invoke(null, ['data' => $inventory]) === $inventory,
     'Wrapped inventory data must remain supported.'
 );
+$rootArrayInventory = ['deviceid' => 'agent-test-array-001', 'content' => (object) []];
+controlhwAssert(
+    $extract->invoke(null, $rootArrayInventory) === $rootArrayInventory,
+    'Root-array inventory payload must be accepted.'
+);
+controlhwAssert(
+    $extract->invoke(null, ['data' => $rootArrayInventory]) === $rootArrayInventory,
+    'Wrapped root-array inventory payload must remain supported.'
+);
 
 echo "Control HW POST_INVENTORY hook tests passed.\n";
