@@ -21,12 +21,15 @@ final class ComponentRepository
                 im.otherserial,
                 im.size AS capacity,
                 im.busID AS slot,
-                dm.designation AS model,
+                COALESCE(dmm.name, dm.designation) AS model,
                 mf.name AS manufacturer,
                 dm.frequence AS frequency,
+                dmt.name AS memory_type,
                 dm.devicememorytypes_id AS component_type_id
             FROM glpi_items_devicememories im
             LEFT JOIN glpi_devicememories dm ON dm.id = im.devicememories_id
+            LEFT JOIN glpi_devicememorymodels dmm ON dmm.id = dm.devicememorymodels_id
+            LEFT JOIN glpi_devicememorytypes dmt ON dmt.id = dm.devicememorytypes_id
             LEFT JOIN glpi_manufacturers mf ON mf.id = dm.manufacturers_id
             WHERE im.itemtype = 'Computer'
               AND im.items_id = " . $computerId . "
@@ -34,7 +37,8 @@ final class ComponentRepository
 
         foreach ($DB->request($memorySql) as $row) {
             $components[] = self::normalize('ram', $row, [
-                'frequency' => $row['frequency'] ?? null,
+                'frequency_mhz' => $row['frequency'] ?? null,
+                'memory_type' => $row['memory_type'] ?? null,
                 'memory_type_id' => $row['component_type_id'] ?? null,
             ]);
         }
@@ -44,12 +48,17 @@ final class ComponentRepository
                 ih.otherserial,
                 ih.capacity,
                 ih.busID AS slot,
-                dh.designation AS model,
+                COALESCE(dhm.name, dh.designation) AS model,
                 mf.name AS manufacturer,
+                it.name AS interface_type,
+                dht.name AS disk_type,
                 dh.interfacetypes_id AS interface_type_id,
                 dh.deviceharddrivetypes_id AS component_type_id
             FROM glpi_items_deviceharddrives ih
             LEFT JOIN glpi_deviceharddrives dh ON dh.id = ih.deviceharddrives_id
+            LEFT JOIN glpi_deviceharddrivemodels dhm ON dhm.id = dh.deviceharddrivemodels_id
+            LEFT JOIN glpi_deviceharddrivetypes dht ON dht.id = dh.deviceharddrivetypes_id
+            LEFT JOIN glpi_interfacetypes it ON it.id = dh.interfacetypes_id
             LEFT JOIN glpi_manufacturers mf ON mf.id = dh.manufacturers_id
             WHERE ih.itemtype = 'Computer'
               AND ih.items_id = " . $computerId . "
@@ -57,6 +66,8 @@ final class ComponentRepository
 
         foreach ($DB->request($diskSql) as $row) {
             $components[] = self::normalize('disk', $row, [
+                'interface_type' => $row['interface_type'] ?? null,
+                'disk_type' => $row['disk_type'] ?? null,
                 'interface_type_id' => $row['interface_type_id'] ?? null,
                 'disk_type_id' => $row['component_type_id'] ?? null,
             ]);
@@ -103,8 +114,11 @@ final class ComponentRepository
 
         $details = array_merge([
             'other_serial' => $otherSerial,
-            'frequency' => null,
+            'frequency_mhz' => null,
+            'memory_type' => null,
             'memory_type_id' => null,
+            'interface_type' => null,
+            'disk_type' => null,
             'interface_type_id' => null,
             'disk_type_id' => null,
         ], $extra);
