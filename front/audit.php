@@ -49,95 +49,163 @@ if (!in_array($status, $allowedStatuses, true)) {
     $status = '';
 }
 
-$where = ['1 = 1'];
+$snapshotWhere = [];
 if ($computerId > 0) {
-    $where[] = 's.computers_id = ' . $computerId;
-}
-if ($search !== '') {
-    $needle = $DB->escape($search);
-    $where[] = "(c.name LIKE '%{$needle}%'
-        OR EXISTS (
-            SELECT 1 FROM glpi_plugin_controlhw_components cx
-            INNER JOIN glpi_plugin_controlhw_snapshots sx ON sx.id = cx.snapshots_id
-            WHERE sx.computers_id = c.id
-              AND (cx.serial LIKE '%{$needle}%' OR cx.model LIKE '%{$needle}%'
-                   OR cx.manufacturer LIKE '%{$needle}%')
-        ))";
+    $snapshotWhere['s.computers_id'] = $computerId;
 }
 if ($dateFrom !== '') {
-    $where[] = "s.date_creation >= '" . addslashes($dateFrom) . " 00:00:00'";
+    $snapshotWhere['s.date_creation'] = ['>=', $dateFrom . ' 00:00:00'];
 }
 if ($dateTo !== '') {
-    $where[] = "s.date_creation <= '" . addslashes($dateTo) . " 23:59:59'";
+    $snapshotWhere[] = ['s.date_creation' => ['<=', $dateTo . ' 23:59:59']];
 }
-$whereSql = implode(' AND ', $where);
+
+$alertWhere = [];
+if ($computerId > 0) {
+    $alertWhere['a.computers_id'] = $computerId;
+}
+if ($changeType !== '') {
+    $alertWhere['a.change_type'] = $changeType;
+}
+if ($status !== '') {
+    $alertWhere['a.notification_status'] = $status;
+}
+if ($dateFrom !== '') {
+    $alertWhere['a.date_creation'] = ['>=', $dateFrom . ' 00:00:00'];
+}
+if ($dateTo !== '') {
+    $alertWhere[] = ['a.date_creation' => ['<=', $dateTo . ' 23:59:59']];
+}
+
+$matchingComputerIds = [];
+if ($search !== '') {
+    $like = '%' . $search . '%';
+    foreach ($DB->request([
+        'SELECT' => ['sx.computers_id'],
+        'DISTINCT' => true,
+        'FROM' => 'glpi_plugin_controlhw_snapshots AS sx',
+        'INNER JOIN' => [
+            'glpi_plugin_controlhw_components AS cx' => [
+                'ON' => ['sx' => 'id', 'cx' => 'snapshots_id'],
+            ],
+        ],
+        'WHERE' => [
+            ['OR' => [
+                'cx.serial' => ['LIKE', $like],
+                'cx.model' => ['LIKE', $like],
+                'cx.manufacturer' => ['LIKE', $like],
+            ]],
+        ],
+    ]) as $match) {
+        $matchingComputerIds[] = (int) $match['computers_id'];
+    }
+
+    $searchComputerCriteria = ['c.name' => ['LIKE', $like]];
+    if ($matchingComputerIds !== []) {
+        $searchComputerCriteria['s.computers_id'] = $matchingComputerIds;
+    }
+    $snapshotWhere[] = ['OR' => $searchComputerCriteria];
+
+    $matchingAlertComputerIds = [];
+    foreach ($DB->request([
+        'SELECT' => ['a.computers_id'],
+        'DISTINCT' => true,
+        'FROM' => 'glpi_plugin_controlhw_alerts AS a',
+        'WHERE' => [
+            ['OR' => [
+                'a.old_data' => ['LIKE', $like],
+                'a.new_data' => ['LIKE', $like],
+            ]],
+        ],
+    ]) as $match) {
+        $matchingAlertComputerIds[] = (int) $match['computers_id'];
+    }
+    $alertSearchCriteria = ['c.name' => ['LIKE', $like]];
+    if ($matchingAlertComputerIds !== []) {
+        $alertSearchCriteria['a.computers_id'] = $matchingAlertComputerIds;
+    }
+    $alertWhere[] = ['OR' => $alertSearchCriteria];
+}
+
+$countSnapshots = static function (string $table, array $where = []) use ($DB): int {
+    $criteria = ['FROM' => $table, 'COUNT' => 'total'];
+    if ($where !== []) {
+        $criteria['WHERE'] = $where;
+    }
+    $iterator = $DB->request($criteria);
+    $row = $iterator->current();
+    return (int) ($row['total'] ?? 0);
+};
 
 $stats = [
     'computers' => 0,
-    'snapshots' => 0,
-    'alerts' => 0,
-    'pending' => 0,
+    'snapshots' => $countSnapshots('glpi_plugin_controlhw_snapshots'),
+    'alerts' => $countSnapshots('glpi_plugin_controlhw_alerts'),
+    'pending' => $countSnapshots('glpi_plugin_controlhw_alerts', ['notification_status' => 'pending']),
 ];
-foreach ($DB->request(
-    "SELECT
-        (SELECT COUNT(DISTINCT computers_id) FROM glpi_plugin_controlhw_snapshots) AS computers,
-        (SELECT COUNT(*) FROM glpi_plugin_controlhw_snapshots) AS snapshots,
-        (SELECT COUNT(*) FROM glpi_plugin_controlhw_alerts) AS alerts,
-        (SELECT COUNT(*) FROM glpi_plugin_controlhw_alerts WHERE notification_status = 'pending') AS pending"
-) as $row) {
-    $stats = array_map('intval', $row);
+foreach ($DB->request([
+    'SELECT' => ['computers_id'],
+    'DISTINCT' => true,
+    'FROM' => 'glpi_plugin_controlhw_snapshots',
+]) as $computerRow) {
+    $stats['computers']++;
 }
 
+$changesCountQuery = new QuerySubQuery([
+    'SELECT' => ['COUNT' => 'total'],
+    'FROM' => 'glpi_plugin_controlhw_alerts AS alert_count',
+    'WHERE' => ['alert_count.snapshots_id' => new QueryExpression('s.id')],
+], 'changes_count');
+
+$historyCriteria = [
+    'SELECT' => [
+        's.id',
+        's.computers_id',
+        'c.name AS computer_name',
+        's.components_count',
+        's.date_creation',
+        $changesCountQuery,
+    ],
+    'FROM' => 'glpi_plugin_controlhw_snapshots AS s',
+    'INNER JOIN' => [
+        'glpi_computers AS c' => [
+            'ON' => ['s' => 'computers_id', 'c' => 'id'],
+        ],
+    ],
+    'WHERE' => $snapshotWhere,
+    'ORDER' => ['s.date_creation DESC', 's.id DESC'],
+    'LIMIT' => 100,
+];
 $historyRows = [];
-foreach ($DB->request(
-    "SELECT s.id, s.computers_id, c.name AS computer_name, s.components_count,
-            s.date_creation,
-            (SELECT COUNT(*) FROM glpi_plugin_controlhw_alerts a
-             WHERE a.snapshots_id = s.id) AS changes_count
-     FROM glpi_plugin_controlhw_snapshots s
-     INNER JOIN glpi_computers c ON c.id = s.computers_id
-     WHERE {$whereSql}
-     ORDER BY s.date_creation DESC, s.id DESC
-     LIMIT 100"
-) as $row) {
+foreach ($DB->request($historyCriteria) as $row) {
     $historyRows[] = $row;
 }
 
-$alertWhere = ['1 = 1'];
-if ($computerId > 0) {
-    $alertWhere[] = 'a.computers_id = ' . $computerId;
-}
-if ($search !== '') {
-    $needle = $DB->escape($search);
-    $alertWhere[] = "(c.name LIKE '%{$needle}%'
-        OR a.old_data LIKE '%{$needle}%'
-        OR a.new_data LIKE '%{$needle}%')";
-}
-if ($changeType !== '') {
-    $alertWhere[] = "a.change_type = '" . addslashes($changeType) . "'";
-}
-if ($status !== '') {
-    $alertWhere[] = "a.notification_status = '" . addslashes($status) . "'";
-}
-if ($dateFrom !== '') {
-    $alertWhere[] = "a.date_creation >= '" . addslashes($dateFrom) . " 00:00:00'";
-}
-if ($dateTo !== '') {
-    $alertWhere[] = "a.date_creation <= '" . addslashes($dateTo) . " 23:59:59'";
-}
-$alertWhereSql = implode(' AND ', $alertWhere);
-
+$alertsCriteria = [
+    'SELECT' => [
+        'a.id',
+        'a.computers_id',
+        'c.name AS computer_name',
+        'a.component_type',
+        'a.change_type',
+        'a.old_data',
+        'a.new_data',
+        'a.notification_status',
+        'a.notification_error',
+        'a.date_creation',
+    ],
+    'FROM' => 'glpi_plugin_controlhw_alerts AS a',
+    'INNER JOIN' => [
+        'glpi_computers AS c' => [
+            'ON' => ['a' => 'computers_id', 'c' => 'id'],
+        ],
+    ],
+    'WHERE' => $alertWhere,
+    'ORDER' => ['a.date_creation DESC', 'a.id DESC'],
+    'LIMIT' => 200,
+];
 $alerts = [];
-foreach ($DB->request(
-    "SELECT a.id, a.computers_id, c.name AS computer_name, a.component_type,
-            a.change_type, a.old_data, a.new_data, a.notification_status,
-            a.notification_error, a.date_creation
-     FROM glpi_plugin_controlhw_alerts a
-     INNER JOIN glpi_computers c ON c.id = a.computers_id
-     WHERE {$alertWhereSql}
-     ORDER BY a.date_creation DESC, a.id DESC
-     LIMIT 200"
-) as $row) {
+foreach ($DB->request($alertsCriteria) as $row) {
     $alerts[] = $row;
 }
 
@@ -148,20 +216,31 @@ if ($computerId > 0) {
     if ($computer->getFromDB($computerId)) {
         $selectedComputer = $computer->fields;
         $latestSnapshotId = 0;
-        foreach ($DB->request(
-            "SELECT id FROM glpi_plugin_controlhw_snapshots
-             WHERE computers_id = {$computerId} AND is_complete = 1
-             ORDER BY id DESC LIMIT 1"
-        ) as $snapshot) {
-            $latestSnapshotId = (int) $snapshot['id'];
+        $latestSnapshot = $DB->request([
+            'SELECT' => ['id'],
+            'FROM' => 'glpi_plugin_controlhw_snapshots',
+            'WHERE' => ['computers_id' => $computerId, 'is_complete' => 1],
+            'ORDER' => 'id DESC',
+            'LIMIT' => 1,
+        ])->current();
+        if ($latestSnapshot !== null) {
+            $latestSnapshotId = (int) $latestSnapshot['id'];
         }
         if ($latestSnapshotId > 0) {
-            foreach ($DB->request(
-                "SELECT component_type, serial, manufacturer, model, capacity, slot, details_json
-                 FROM glpi_plugin_controlhw_components
-                 WHERE snapshots_id = {$latestSnapshotId}
-                 ORDER BY component_type, slot, model"
-            ) as $component) {
+            foreach ($DB->request([
+                'SELECT' => [
+                    'component_type',
+                    'serial',
+                    'manufacturer',
+                    'model',
+                    'capacity',
+                    'slot',
+                    'details_json',
+                ],
+                'FROM' => 'glpi_plugin_controlhw_components',
+                'WHERE' => ['snapshots_id' => $latestSnapshotId],
+                'ORDER' => ['component_type', 'slot', 'model'],
+            ]) as $component) {
                 $latestComponents[] = $component;
             }
         }
