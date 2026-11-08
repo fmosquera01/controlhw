@@ -29,7 +29,7 @@ El evento emitido es:
 - Origen: `controlhw`
 - Evento: `hardware.changed`
 
-En FML Telegram debe existir una suscripción activa para ese origen/evento y al menos un destino habilitado. FML Telegram conserva su propia cola, deduplicación y reintentos de entrega.
+En FML Telegram debe existir una suscripción activa para ese origen/evento y al menos un destino habilitado. FML Telegram conserva su propia cola, deduplicación y reintentos de entrega. Si una alerta queda pendiente porque el servicio o la suscripción no están disponibles, Control HW vuelve a intentar en el siguiente inventario exitoso de ese mismo equipo.
 
 ## Instalación de desarrollo
 
