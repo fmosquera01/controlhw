@@ -1,19 +1,23 @@
 <?php
 
-namespace GlpiPlugin\Controlhw;
+namespace GlpiPlugin\\Controlhw;
 
 use Agent;
 use Computer;
-use Glpi\Plugin\Hooks;
 use Throwable;
 use Toolbox;
 
 final class InventoryAuditor
 {
-    public static function onInventory($rawData): void
+    /**
+     * GLPI POST_INVENTORY passes an array with the inventory object in "data".
+     * Keep accepting a direct object too, for compatibility with older integrations.
+     */
+    public static function onInventory($params): void
     {
         try {
-            if (!is_object($rawData) || empty($rawData->deviceid)) {
+            $rawData = self::extractInventoryData($params);
+            if ($rawData === null) {
                 return;
             }
 
@@ -23,14 +27,18 @@ final class InventoryAuditor
                 return;
             }
 
-            $agent = new Agent();
-            if (!$agent->getFromDBByCrit(['deviceid' => (string) $rawData->deviceid])) {
+            $deviceId = self::readValue($rawData, 'deviceid');
+            if (!is_scalar($deviceId) || trim((string) $deviceId) === '') {
                 return;
             }
 
-            if (($agent->fields['itemtype'] ?? '') !== Computer::class
-                && ($agent->fields['itemtype'] ?? '') !== 'Computer'
-            ) {
+            $agent = new Agent();
+            if (!$agent->getFromDBByCrit(['deviceid' => (string) $deviceId])) {
+                return;
+            }
+
+            $agentItemtype = (string) ($agent->fields['itemtype'] ?? '');
+            if ($agentItemtype !== Computer::class && $agentItemtype !== 'Computer') {
                 return;
             }
 
@@ -47,27 +55,51 @@ final class InventoryAuditor
             $computerName = (string) ($computer->fields['name'] ?? ('Computer #' . $computerId));
             SnapshotService::retryPendingNotifications($computerId, $computerName);
             $components = ComponentRepository::collect($computerId);
-            SnapshotService::capture(
-                $computerId,
-                $computerName,
-                $components
-            );
+            SnapshotService::capture($computerId, $computerName, $components);
         } catch (Throwable $exception) {
             // Never interrupt or roll back a successful GLPI inventory.
             Toolbox::logError('Control HW inventory audit failed: ' . $exception->getMessage());
         }
     }
 
-    private static function containsPartialMarker($value, int $depth = 0): bool
+    private static function extractInventoryData($params)
     {
-        if ($depth > 12) {
-            return false;
+        if (is_array($params)) {
+            return $params['data'] ?? null;
+        }
+
+        if (is_object($params) && isset($params->data)) {
+            return $params->data;
+        }
+
+        return is_object($params) ? $params : null;
+    }
+
+    private static function readValue($value, string $key)
+    {
+        if (is_array($value)) {
+            return $value[$key] ?? null;
         }
 
         if (is_object($value)) {
-            if (($value->partial ?? false) === true || ($value->partial ?? null) === 1) {
-                return true;
-            }
+            return $value->{$key} ?? null;
+        }
+
+        return null;
+    }
+
+    private static function containsPartialMarker($value, int $depth = 0): bool
+    {
+        if ($depth > 16) {
+            return false;
+        }
+
+        $partial = self::readValue($value, 'partial');
+        if ($partial === true || $partial === 1 || $partial === '1') {
+            return true;
+        }
+
+        if (is_object($value)) {
             foreach (get_object_vars($value) as $child) {
                 if (self::containsPartialMarker($child, $depth + 1)) {
                     return true;
