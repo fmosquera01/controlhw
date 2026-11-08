@@ -4,7 +4,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 - **Identificador:** `controlhw`
 - **Nombre:** Control HW – Auditoría de Hardware
-- **Versión:** 0.4.2
+- **Versión:** 0.4.3
 - **Repositorio:** https://github.com/fmosquera01/controlhw
 - **Rama:** `main`
 - **Compatibilidad objetivo:** GLPI 11.0.11
@@ -12,7 +12,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 ## Panel de auditoría
 
-La versión 0.4.2 corrige las consultas del panel para usar el query builder de GLPI 11, evita SQL crudo y calcula los contadores sin subconsultas de agregación incompatibles. La página de consulta y registra el acceso bajo el sector Plugins, siguiendo el patrón oficial de GLPI, y construye la URL respetando la ruta base de la instalación y usa una clase compatible con CommonGLPI, requerida por el sistema de menús de GLPI en **Plugins → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
+La versión 0.4.3 corrige las consultas del panel para usar el query builder de GLPI 11, evita SQL crudo y calcula los contadores sin subconsultas de agregación incompatibles. La página de consulta y registra el acceso bajo el sector Plugins, siguiendo el patrón oficial de GLPI, y construye la URL respetando la ruta base de la instalación y usa una clase compatible con CommonGLPI, requerida por el sistema de menús de GLPI en **Plugins → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
 
 - Resumen de equipos auditados, inventarios, cambios y notificaciones pendientes.
 - Historial de los últimos 100 inventarios.
@@ -78,4 +78,4 @@ La pantalla debe validarse en el GLPI de pruebas con perfiles de solo lectura y 
 
 ## Estado
 
-Versión 0.4.2: corrige la extracción del payload de `POST_INVENTORY` para aceptar tanto el objeto nativo como un arreglo raíz o un envoltorio `data`; además devuelve el parámetro original para no interrumpir la cadena de callbacks de GLPI. Si el payload llega vacío, registra su tipo y los nombres de sus campos superiores sin exponer valores del inventario. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.
+Versión 0.4.3: registra una acción `POST_INIT` que, una vez inicializados todos los plugins, coloca el callback de Control HW al inicio de `POST_INVENTORY`. GLPI encadena los valores devueltos por esos callbacks; así se evita que un callback anterior que devuelva `null` prive al auditor del objeto de inventario original. El callback de Control HW conserva el parámetro al terminar. Debe validarse en GLPI de pruebas antes de producción.
