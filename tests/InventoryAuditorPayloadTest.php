@@ -1,31 +1,20 @@
 <?php
 
-require_once __DIR__ . '/../src/InventoryAuditor.php';
-
-function controlhwPayloadAssert(bool $condition, string $message): void
-{
-    if (!$condition) {
-        throw new RuntimeException($message);
-    }
+$setup = file_get_contents(__DIR__ . '/../setup.php');
+if (!is_string($setup)) {
+    throw new RuntimeException('Could not read setup.php.');
 }
 
-$inventory = (object) ['deviceid' => 'agent-test-001'];
-$extract = new ReflectionMethod(\GlpiPlugin\Controlhw\InventoryAuditor::class, 'extractInventoryData');
+if (str_contains($setup, 'Hooks::POST_INVENTORY')) {
+    throw new RuntimeException('Unsupported POST_INVENTORY hook must not be registered.');
+}
 
-$fromHook = $extract->invoke(null, ['data' => $inventory]);
-controlhwPayloadAssert($fromHook === $inventory, 'POST_INVENTORY data must be extracted from the hook parameter array.');
+if (!str_contains($setup, 'Hooks::ITEM_ADD') || !str_contains($setup, 'Hooks::ITEM_UPDATE')) {
+    throw new RuntimeException('Computer add/update hooks must both be registered.');
+}
 
-$direct = $extract->invoke(null, $inventory);
-controlhwPayloadAssert($direct === $inventory, 'A direct inventory object must remain supported.');
+if (!str_contains($setup, 'InventoryAuditor::class') || !str_contains($setup, "'onComputerChange'")) {
+    throw new RuntimeException('Computer audit callback is not registered.');
+}
 
-$partial = new ReflectionMethod(\GlpiPlugin\Controlhw\InventoryAuditor::class, 'containsPartialMarker');
-controlhwPayloadAssert(
-    $partial->invoke(null, ['data' => ['hardware' => ['partial' => true]]]) === true,
-    'A nested partial marker must be detected.'
-);
-controlhwPayloadAssert(
-    $partial->invoke(null, ['data' => ['hardware' => ['partial' => false]]]) === false,
-    'A complete inventory must not be marked partial.'
-);
-
-echo "Control HW inventory hook payload tests passed.\n";
+echo "Control HW inventory hook registration tests passed.\n";
