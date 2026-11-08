@@ -12,13 +12,21 @@ final class InventoryAuditor
     {
         $rawData = self::extractInventoryData($params);
         if ($rawData === null) {
-            self::log('POST_INVENTORY received an empty or unsupported payload.');
+            self::log(
+                'POST_INVENTORY received an empty payload. Callback parameter type: '
+                . get_debug_type($params)
+                . self::describePayloadKeys($params)
+            );
             return;
         }
 
         $deviceId = self::readValue($rawData, 'deviceid');
         if (!is_scalar($deviceId) || trim((string) $deviceId) === '') {
-            self::log('POST_INVENTORY payload has no root deviceid. Payload type: ' . get_debug_type($rawData));
+            self::log(
+                'POST_INVENTORY payload has no root deviceid. Payload type: '
+                . get_debug_type($rawData)
+                . self::describePayloadKeys($rawData)
+            );
             return;
         }
         $deviceId = trim((string) $deviceId);
@@ -88,14 +96,32 @@ final class InventoryAuditor
     private static function extractInventoryData($params)
     {
         if (is_array($params)) {
-            return $params['data'] ?? null;
+            // Some hook integrations wrap the inventory in "data"; GLPI's native
+            // POST_INVENTORY hook normally passes the raw inventory itself.
+            return array_key_exists('data', $params) ? $params['data'] : $params;
         }
 
-        if (is_object($params) && isset($params->data)) {
+        if (is_object($params) && property_exists($params, 'data')) {
             return $params->data;
         }
 
         return is_object($params) ? $params : null;
+    }
+
+    /**
+     * Return only top-level field names for diagnostics; never log inventory values.
+     */
+    private static function describePayloadKeys($payload): string
+    {
+        if (is_array($payload)) {
+            return '; top-level keys=' . implode(',', array_map('strval', array_keys($payload)));
+        }
+
+        if (is_object($payload)) {
+            return '; top-level keys=' . implode(',', array_keys(get_object_vars($payload)));
+        }
+
+        return '';
     }
 
     private static function readValue($value, string $key)
