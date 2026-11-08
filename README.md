@@ -4,7 +4,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 - **Identificador:** `controlhw`
 - **Nombre:** Control HW – Auditoría de Hardware
-- **Versión:** 0.3.0
+- **Versión:** 0.3.1
 - **Repositorio:** https://github.com/fmosquera01/controlhw
 - **Rama:** `main`
 - **Compatibilidad objetivo:** GLPI 11.0.11
@@ -12,7 +12,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 ## Panel de auditoría
 
-La versión 0.3.0 incorpora una página de consulta en **Herramientas → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
+La versión 0.3.1 incorpora una página de consulta y registra el acceso al menú sin depender de la disponibilidad de permisos durante la inicialización del plugin en **Herramientas → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
 
 - Resumen de equipos auditados, inventarios, cambios y notificaciones pendientes.
 - Historial de los últimos 100 inventarios.
@@ -74,4 +74,4 @@ La pantalla debe validarse en el GLPI de pruebas con perfiles de solo lectura y 
 
 ## Estado
 
-Versión 0.3.0: primera interfaz de consulta añadida al repositorio. La captura sigue conectada al hook `POST_INVENTORY` de GLPI 11.0.11. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.
+Versión 0.3.1: primera interfaz de consulta añadida al repositorio. La captura sigue conectada al hook `POST_INVENTORY` de GLPI 11.0.11. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.
