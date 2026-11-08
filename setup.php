@@ -5,7 +5,7 @@
 
 use GlpiPlugin\Controlhw\AuditMenu;
 
-define('PLUGIN_CONTROLHW_VERSION', '0.3.5');
+define('PLUGIN_CONTROLHW_VERSION', '0.3.6');
 define('PLUGIN_CONTROLHW_MIN_GLPI_VERSION', '11.0.11');
 define('PLUGIN_CONTROLHW_MAX_GLPI_VERSION', '11.1.0');
 
