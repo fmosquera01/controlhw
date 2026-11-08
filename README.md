@@ -12,7 +12,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 ## Panel de auditoría
 
-La versión 0.4.3 corrige las consultas del panel para usar el query builder de GLPI 11, evita SQL crudo y calcula los contadores sin subconsultas de agregación incompatibles. La página de consulta y registra el acceso bajo el sector Plugins, siguiendo el patrón oficial de GLPI, y construye la URL respetando la ruta base de la instalación y usa una clase compatible con CommonGLPI, requerida por el sistema de menús de GLPI en **Plugins → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
+La versión 0.4.2 corrigió las consultas del panel para usar el query builder de GLPI 11, evita SQL crudo y calcula los contadores sin subconsultas de agregación incompatibles. La página de consulta y registra el acceso bajo el sector Plugins, siguiendo el patrón oficial de GLPI, y construye la URL respetando la ruta base de la instalación y usa una clase compatible con CommonGLPI, requerida por el sistema de menús de GLPI en **Plugins → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
 
 - Resumen de equipos auditados, inventarios, cambios y notificaciones pendientes.
 - Historial de los últimos 100 inventarios.
