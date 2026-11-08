@@ -2,8 +2,6 @@
 
 namespace GlpiPlugin\Controlhw;
 
-use RuntimeException;
-
 final class ComponentRepository
 {
     public static function collect(int $computerId): array
@@ -11,7 +9,7 @@ final class ComponentRepository
         global $DB;
 
         if ($computerId <= 0) {
-            throw new RuntimeException('Invalid computer ID for hardware audit.');
+            throw new \RuntimeException('Invalid computer ID for hardware audit.');
         }
 
         $components = [];
