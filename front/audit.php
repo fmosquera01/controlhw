@@ -1,7 +1,5 @@
 <?php
 
-use Html;
-
 include('../../../inc/includes.php');
 
 Session::checkRight('computer', READ);
@@ -16,6 +14,23 @@ function controlhw_h($value): string
 function controlhw_date_filter(string $value): string
 {
     return preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $value) ? $value : '';
+}
+
+function controlhw_component_details(?string $json): string
+{
+    $details = json_decode((string) $json, true);
+    if (!is_array($details)) {
+        return '—';
+    }
+
+    $parts = array_filter([
+        !empty($details['memory_type']) ? 'Tipo RAM: ' . $details['memory_type'] : null,
+        !empty($details['frequency_mhz']) ? $details['frequency_mhz'] . ' MHz' : null,
+        !empty($details['disk_type']) ? 'Tipo disco: ' . $details['disk_type'] : null,
+        !empty($details['interface_type']) ? 'Interfaz: ' . $details['interface_type'] : null,
+    ]);
+
+    return $parts === [] ? '—' : implode(' · ', $parts);
 }
 
 $search = trim((string) ($_GET['search'] ?? ''));
@@ -217,10 +232,10 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
             </div>
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
-                    <thead><tr><th>Tipo</th><th>Fabricante</th><th>Modelo</th><th>Capacidad</th><th>Serie</th><th>Slot / conexión</th></tr></thead>
+                    <thead><tr><th>Tipo</th><th>Fabricante</th><th>Modelo</th><th>Capacidad</th><th>Serie</th><th>Detalles</th><th>Slot / conexión</th></tr></thead>
                     <tbody>
                     <?php if ($latestComponents === []): ?>
-                        <tr><td colspan="6" class="text-center text-muted">No hay componentes registrados en el último inventario.</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted">No hay componentes registrados en el último inventario.</td></tr>
                     <?php else: foreach ($latestComponents as $component): ?>
                         <tr>
                             <td><?= controlhw_h($component['component_type'] === 'ram' ? 'Memoria RAM' : 'Disco') ?></td>
@@ -228,6 +243,7 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
                             <td><?= controlhw_h($component['model']) ?></td>
                             <td><?= controlhw_h($component['capacity']) ?></td>
                             <td><?= controlhw_h($component['serial']) ?></td>
+                            <td><?= controlhw_h(controlhw_component_details($component['details_json'] ?? null)) ?></td>
                             <td><?= controlhw_h($component['slot']) ?></td>
                         </tr>
                     <?php endforeach; endif; ?>
