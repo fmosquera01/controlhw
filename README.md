@@ -4,10 +4,24 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 - **Identificador:** `controlhw`
 - **Nombre:** Control HW – Auditoría de Hardware
+- **Versión:** 0.3.0
 - **Repositorio:** https://github.com/fmosquera01/controlhw
 - **Rama:** `main`
 - **Compatibilidad objetivo:** GLPI 11.0.11
 - **Integración de avisos:** FML Telegram (plugin separado)
+
+## Panel de auditoría
+
+La versión 0.3.0 incorpora una página de consulta en **Herramientas → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
+
+- Resumen de equipos auditados, inventarios, cambios y notificaciones pendientes.
+- Historial de los últimos 100 inventarios.
+- Detalle de los últimos 200 cambios, con componente anterior y nuevo.
+- Consulta del último inventario de componentes por equipo.
+- Filtros por equipo, serie, modelo, fabricante, fechas, tipo de cambio y estado de Telegram.
+- Enlace al formulario del equipo en GLPI.
+
+La pantalla consulta las tablas de auditoría existentes; no elimina ni reinicia el historial almacenado.
 
 ## Detección
 
@@ -35,9 +49,11 @@ En FML Telegram debe existir una suscripción activa para ese origen/evento y al
 
 1. Copiar la carpeta del plugin como `plugins/controlhw`.
 2. Instalar y habilitar **FML Telegram** antes de activar las suscripciones de avisos.
-3. Instalar Control HW desde la administración de plugins de GLPI.
-4. Configurar en FML Telegram la suscripción `controlhw / hardware.changed`.
-5. Ejecutar inventarios de prueba y revisar los registros de auditoría.
+3. Instalar y habilitar Control HW desde la administración de plugins de GLPI.
+4. Otorgar al perfil correspondiente permiso de lectura de equipos.
+5. Entrar en **Herramientas → Control HW - Auditoría**. Si el menú ya estaba cargado en la sesión, cerrar y volver a iniciar sesión para regenerarlo.
+6. Configurar en FML Telegram la suscripción `controlhw / hardware.changed`.
+7. Ejecutar inventarios de prueba y revisar los registros de auditoría.
 
 ## Datos persistentes
 
@@ -54,6 +70,8 @@ Ejecutar el test independiente del comparador:
 
 `php tests/ComponentComparatorTest.php`
 
+La pantalla debe validarse en el GLPI de pruebas con perfiles de solo lectura y administración, datos vacíos y equipos con alertas antes de producción. No se ha ejecutado una prueba de instalación ni de interfaz en el GLPI del usuario.
+
 ## Estado
 
-Primera implementación funcional en desarrollo. La captura se conecta al hook `POST_INVENTORY` de GLPI 11.0.11, resuelve el agente mediante `deviceid` y lee las relaciones nativas de memoria y discos una vez confirmado el inventario. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.
+Versión 0.3.0: primera interfaz de consulta añadida al repositorio. La captura sigue conectada al hook `POST_INVENTORY` de GLPI 11.0.11. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.
