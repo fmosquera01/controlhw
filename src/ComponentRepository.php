@@ -14,26 +14,44 @@ final class ComponentRepository
 
         $components = [];
 
-        $memorySql = "SELECT
-                im.serial,
-                im.otherserial,
-                im.size AS capacity,
-                im.busID AS slot,
-                COALESCE(NULLIF(dmm.name, ''), dm.designation) AS model,
-                mf.name AS manufacturer,
-                dm.frequence AS frequency,
-                dmt.name AS memory_type,
-                dm.devicememorytypes_id AS component_type_id
-            FROM glpi_items_devicememories im
-            LEFT JOIN glpi_devicememories dm ON dm.id = im.devicememories_id
-            LEFT JOIN glpi_devicememorymodels dmm ON dmm.id = dm.devicememorymodels_id
-            LEFT JOIN glpi_devicememorytypes dmt ON dmt.id = dm.devicememorytypes_id
-            LEFT JOIN glpi_manufacturers mf ON mf.id = dm.manufacturers_id
-            WHERE im.itemtype = 'Computer'
-              AND im.items_id = " . $computerId . "
-              AND im.is_deleted = 0";
+        $memoryCriteria = [
+            'SELECT' => [
+                'im.serial',
+                'im.otherserial',
+                'im.size AS capacity',
+                'im.busID AS slot',
+                'dmm.name AS model_name',
+                'dm.designation',
+                'mf.name AS manufacturer',
+                'dm.frequence AS frequency',
+                'dmt.name AS memory_type',
+                'dm.devicememorytypes_id AS component_type_id',
+            ],
+            'FROM' => 'glpi_items_devicememories AS im',
+            'LEFT JOIN' => [
+                'glpi_devicememories AS dm' => [
+                    'ON' => ['im' => 'devicememories_id', 'dm' => 'id'],
+                ],
+                'glpi_devicememorymodels AS dmm' => [
+                    'ON' => ['dm' => 'devicememorymodels_id', 'dmm' => 'id'],
+                ],
+                'glpi_devicememorytypes AS dmt' => [
+                    'ON' => ['dm' => 'devicememorytypes_id', 'dmt' => 'id'],
+                ],
+                'glpi_manufacturers AS mf' => [
+                    'ON' => ['dm' => 'manufacturers_id', 'mf' => 'id'],
+                ],
+            ],
+            'WHERE' => [
+                'im.itemtype' => 'Computer',
+                'im.items_id' => $computerId,
+                'im.is_deleted' => 0,
+            ],
+        ];
 
-        foreach ($DB->request($memorySql) as $row) {
+        foreach ($DB->request($memoryCriteria) as $row) {
+            $row['model'] = self::clean($row['model_name'] ?? null)
+                ?? self::clean($row['designation'] ?? null);
             $components[] = self::normalize('ram', $row, [
                 'frequency_mhz' => $row['frequency'] ?? null,
                 'memory_type' => $row['memory_type'] ?? null,
@@ -41,28 +59,48 @@ final class ComponentRepository
             ]);
         }
 
-        $diskSql = "SELECT
-                ih.serial,
-                ih.otherserial,
-                ih.capacity,
-                ih.busID AS slot,
-                COALESCE(NULLIF(dhm.name, ''), dh.designation) AS model,
-                mf.name AS manufacturer,
-                it.name AS interface_type,
-                dht.name AS disk_type,
-                dh.interfacetypes_id AS interface_type_id,
-                dh.deviceharddrivetypes_id AS component_type_id
-            FROM glpi_items_deviceharddrives ih
-            LEFT JOIN glpi_deviceharddrives dh ON dh.id = ih.deviceharddrives_id
-            LEFT JOIN glpi_deviceharddrivemodels dhm ON dhm.id = dh.deviceharddrivemodels_id
-            LEFT JOIN glpi_deviceharddrivetypes dht ON dht.id = dh.deviceharddrivetypes_id
-            LEFT JOIN glpi_interfacetypes it ON it.id = dh.interfacetypes_id
-            LEFT JOIN glpi_manufacturers mf ON mf.id = dh.manufacturers_id
-            WHERE ih.itemtype = 'Computer'
-              AND ih.items_id = " . $computerId . "
-              AND ih.is_deleted = 0";
+        $diskCriteria = [
+            'SELECT' => [
+                'ih.serial',
+                'ih.otherserial',
+                'ih.capacity',
+                'ih.busID AS slot',
+                'dhm.name AS model_name',
+                'dh.designation',
+                'mf.name AS manufacturer',
+                'it.name AS interface_type',
+                'dht.name AS disk_type',
+                'dh.interfacetypes_id AS interface_type_id',
+                'dh.deviceharddrivetypes_id AS component_type_id',
+            ],
+            'FROM' => 'glpi_items_deviceharddrives AS ih',
+            'LEFT JOIN' => [
+                'glpi_deviceharddrives AS dh' => [
+                    'ON' => ['ih' => 'deviceharddrives_id', 'dh' => 'id'],
+                ],
+                'glpi_deviceharddrivemodels AS dhm' => [
+                    'ON' => ['dh' => 'deviceharddrivemodels_id', 'dhm' => 'id'],
+                ],
+                'glpi_deviceharddrivetypes AS dht' => [
+                    'ON' => ['dh' => 'deviceharddrivetypes_id', 'dht' => 'id'],
+                ],
+                'glpi_interfacetypes AS it' => [
+                    'ON' => ['dh' => 'interfacetypes_id', 'it' => 'id'],
+                ],
+                'glpi_manufacturers AS mf' => [
+                    'ON' => ['dh' => 'manufacturers_id', 'mf' => 'id'],
+                ],
+            ],
+            'WHERE' => [
+                'ih.itemtype' => 'Computer',
+                'ih.items_id' => $computerId,
+                'ih.is_deleted' => 0,
+            ],
+        ];
 
-        foreach ($DB->request($diskSql) as $row) {
+        foreach ($DB->request($diskCriteria) as $row) {
+            $row['model'] = self::clean($row['model_name'] ?? null)
+                ?? self::clean($row['designation'] ?? null);
             $components[] = self::normalize('disk', $row, [
                 'interface_type' => $row['interface_type'] ?? null,
                 'disk_type' => $row['disk_type'] ?? null,
