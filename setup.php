@@ -5,7 +5,7 @@
 
 use GlpiPlugin\Controlhw\AuditMenu;
 
-define('PLUGIN_CONTROLHW_VERSION', '0.3.9');
+define('PLUGIN_CONTROLHW_VERSION', '0.4.0');
 define('PLUGIN_CONTROLHW_MIN_GLPI_VERSION', '11.0.11');
 define('PLUGIN_CONTROLHW_MAX_GLPI_VERSION', '11.1.0');
 
@@ -48,21 +48,13 @@ function plugin_init_controlhw(): void
     global $PLUGIN_HOOKS;
 
     $PLUGIN_HOOKS['csrf_compliant']['controlhw'] = true;
-    // GLPI 11 dispatches item_add/item_update with the affected Computer item.
-    // Inventory Agent updates the Computer record; audit its current linked components.
-    $computerAuditCallback = [
+
+    // GLPI 11.0.11 calls this function hook after a successful inventory submission.
+    $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::POST_INVENTORY]['controlhw'] = [
         \GlpiPlugin\Controlhw\InventoryAuditor::class,
-        'onComputerChange',
-    ];
-    $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::ITEM_ADD]['controlhw'] = [
-        \Computer::class => $computerAuditCallback,
-    ];
-    $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::ITEM_UPDATE]['controlhw'] = [
-        \Computer::class => $computerAuditCallback,
+        'onInventory',
     ];
 
-    // Register the menu unconditionally. Visibility is checked by AuditMenu::getMenuContent()
-    // after GLPI has initialized the active user's session and rights.
     $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::MENU_TOADD]['controlhw'] = [
         'plugins' => AuditMenu::class,
     ];
