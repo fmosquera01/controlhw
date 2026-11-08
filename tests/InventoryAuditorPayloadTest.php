@@ -11,6 +11,7 @@ function controlhwAssert(bool $condition, string $message): void
 
 $setup = file_get_contents(__DIR__ . '/../setup.php');
 controlhwAssert(is_string($setup), 'Could not read setup.php.');
+controlhwAssert(str_contains($setup, 'Hooks::POST_INIT'), 'POST_INIT hook must be registered to prioritize callbacks.');
 controlhwAssert(str_contains($setup, 'Hooks::POST_INVENTORY'), 'POST_INVENTORY hook must be registered.');
 controlhwAssert(str_contains($setup, "'onInventory'"), 'POST_INVENTORY callback must be onInventory.');
 controlhwAssert(!str_contains($setup, 'Hooks::ITEM_ADD'), 'Computer item_add must not replace POST_INVENTORY.');
