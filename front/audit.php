@@ -168,7 +168,7 @@ if ($computerId > 0) {
     }
 }
 
-Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], 'tools');
+Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], 'plugins');
 ?>
 <div class="container-fluid">
     <div class="d-flex align-items-center justify-content-between mb-3">
