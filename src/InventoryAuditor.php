@@ -8,7 +8,7 @@ final class InventoryAuditor
      * GLPI 11 POST_INVENTORY passes the cleaned raw inventory object directly.
      * This hook is called only after GLPI has successfully processed the inventory.
      */
-    public static function onInventory($params): void
+    public static function onInventory($params): mixed
     {
         $rawData = self::extractInventoryData($params);
         if ($rawData === null) {
@@ -17,7 +17,7 @@ final class InventoryAuditor
                 . get_debug_type($params)
                 . self::describePayloadKeys($params)
             );
-            return;
+            return $params;
         }
 
         $deviceId = self::readValue($rawData, 'deviceid');
@@ -27,7 +27,7 @@ final class InventoryAuditor
                 . get_debug_type($rawData)
                 . self::describePayloadKeys($rawData)
             );
-            return;
+            return $params;
         }
         $deviceId = trim((string) $deviceId);
         self::log('POST_INVENTORY received for deviceid=' . $deviceId);
@@ -37,14 +37,14 @@ final class InventoryAuditor
             || self::readValue($rawData, 'partial') === 1
             || self::readValue($rawData, 'partial') === '1') {
             self::log('Partial inventory ignored for deviceid=' . $deviceId);
-            return;
+            return $params;
         }
 
         try {
             $agent = new \Agent();
             if (!$agent->getFromDBByCrit(['deviceid' => $deviceId])) {
                 self::log('Agent row not found after successful inventory. deviceid=' . $deviceId);
-                return;
+                return $params;
             }
 
             $agentItemtype = (string) ($agent->fields['itemtype'] ?? '');
@@ -57,18 +57,18 @@ final class InventoryAuditor
 
             if ($agentItemtype !== \Computer::class && $agentItemtype !== 'Computer') {
                 self::log('Agent is not linked to a Computer. deviceid=' . $deviceId . '; itemtype=' . $agentItemtype);
-                return;
+                return $params;
             }
 
             if ($computerId <= 0) {
                 self::log('Agent has no linked Computer ID. deviceid=' . $deviceId);
-                return;
+                return $params;
             }
 
             $computer = new \Computer();
             if (!$computer->getFromDB($computerId)) {
                 self::log('Linked Computer record not found. deviceid=' . $deviceId . '; computer_id=' . $computerId);
-                return;
+                return $params;
             }
 
             $computerName = (string) ($computer->fields['name'] ?? ('Computer #' . $computerId));
@@ -91,6 +91,10 @@ final class InventoryAuditor
             );
             \Toolbox::logError('Control HW inventory audit failed: ' . $exception->getMessage());
         }
+
+        // GLPI chains POST_INVENTORY callbacks through the returned parameter.
+        // Preserve it so this plugin never breaks callbacks registered after it.
+        return $params;
     }
 
     private static function extractInventoryData($params)
