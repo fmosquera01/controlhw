@@ -2,11 +2,6 @@
 
 namespace GlpiPlugin\Controlhw;
 
-use Agent;
-use Computer;
-use Throwable;
-use Toolbox;
-
 final class InventoryAuditor
 {
     /**
@@ -32,13 +27,13 @@ final class InventoryAuditor
                 return;
             }
 
-            $agent = new Agent();
+            $agent = new \Agent();
             if (!$agent->getFromDBByCrit(['deviceid' => (string) $deviceId])) {
                 return;
             }
 
             $agentItemtype = (string) ($agent->fields['itemtype'] ?? '');
-            if ($agentItemtype !== Computer::class && $agentItemtype !== 'Computer') {
+            if ($agentItemtype !== \Computer::class && $agentItemtype !== 'Computer') {
                 return;
             }
 
@@ -47,7 +42,7 @@ final class InventoryAuditor
                 return;
             }
 
-            $computer = new Computer();
+            $computer = new \Computer();
             if (!$computer->getFromDB($computerId)) {
                 return;
             }
@@ -56,9 +51,9 @@ final class InventoryAuditor
             SnapshotService::retryPendingNotifications($computerId, $computerName);
             $components = ComponentRepository::collect($computerId);
             SnapshotService::capture($computerId, $computerName, $components);
-        } catch (Throwable $exception) {
+        } catch (\Throwable $exception) {
             // Never interrupt or roll back a successful GLPI inventory.
-            Toolbox::logError('Control HW inventory audit failed: ' . $exception->getMessage());
+            \Toolbox::logError('Control HW inventory audit failed: ' . $exception->getMessage());
         }
     }
 
