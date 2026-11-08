@@ -2,8 +2,6 @@
 
 namespace GlpiPlugin\Controlhw;
 
-use Throwable;
-
 final class SnapshotService
 {
     public static function capture(int $computerId, string $computerName, array $components): void
