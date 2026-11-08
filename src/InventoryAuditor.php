@@ -44,10 +44,12 @@ final class InventoryAuditor
                 return;
             }
 
+            $computerName = (string) ($computer->fields['name'] ?? ('Computer #' . $computerId));
+            SnapshotService::retryPendingNotifications($computerId, $computerName);
             $components = ComponentRepository::collect($computerId);
             SnapshotService::capture(
                 $computerId,
-                (string) ($computer->fields['name'] ?? ('Computer #' . $computerId)),
+                $computerName,
                 $components
             );
         } catch (Throwable $exception) {
