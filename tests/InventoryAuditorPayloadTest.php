@@ -33,4 +33,12 @@ controlhwAssert(
     'Wrapped root-array inventory payload must remain supported.'
 );
 
+$auditorSource = file_get_contents(__DIR__ . '/../src/InventoryAuditor.php');
+controlhwAssert(is_string($auditorSource), 'Could not read InventoryAuditor.php.');
+controlhwAssert(
+    str_contains($auditorSource, 'public static function onInventory($params): mixed')
+        && str_contains($auditorSource, 'return $params;'),
+    'POST_INVENTORY callback must preserve the hook parameter chain.'
+);
+
 echo "Control HW POST_INVENTORY hook tests passed.\n";
