@@ -70,6 +70,8 @@ Ejecutar el test independiente del comparador:
 
 `php tests/ComponentComparatorTest.php`
 
+`php tests/InventoryAuditorPayloadTest.php`
+
 La pantalla debe validarse en el GLPI de pruebas con perfiles de solo lectura y administración, datos vacíos y equipos con alertas antes de producción. No se ha ejecutado una prueba de instalación ni de interfaz en el GLPI del usuario.
 
 ## Estado
