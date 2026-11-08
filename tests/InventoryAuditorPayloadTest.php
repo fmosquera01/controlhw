@@ -19,10 +19,10 @@ controlhwAssert(!str_contains($setup, 'Hooks::ITEM_UPDATE'), 'Computer item_upda
 // POST_INIT must move Control HW to the first callback position after all plugins load.
 $GLOBALS['PLUGIN_HOOKS']['post_inventory'] = [
     'aaa_other_plugin' => static fn($params) => null,
-    'controlhw' => [\GlpiPlugin\\Controlhw\\InventoryAuditor::class, 'onInventory'],
+    'controlhw' => [\GlpiPlugin\Controlhw\InventoryAuditor::class, 'onInventory'],
     'zzz_other_plugin' => static fn($params) => $params,
 ];
-\GlpiPlugin\\Controlhw\\InventoryAuditor::prioritizePostInventoryHook();
+\GlpiPlugin\Controlhw\InventoryAuditor::prioritizePostInventoryHook();
 controlhwAssert(
     array_key_first($GLOBALS['PLUGIN_HOOKS']['post_inventory']) === 'controlhw',
     'Control HW must run before other POST_INVENTORY callbacks to receive the original inventory.'
