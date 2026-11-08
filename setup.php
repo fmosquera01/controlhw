@@ -5,7 +5,7 @@
 
 use GlpiPlugin\Controlhw\AuditMenu;
 
-define('PLUGIN_CONTROLHW_VERSION', '0.4.2');
+define('PLUGIN_CONTROLHW_VERSION', '0.4.3');
 define('PLUGIN_CONTROLHW_MIN_GLPI_VERSION', '11.0.11');
 define('PLUGIN_CONTROLHW_MAX_GLPI_VERSION', '11.1.0');
 
@@ -48,6 +48,13 @@ function plugin_init_controlhw(): void
     global $PLUGIN_HOOKS;
 
     $PLUGIN_HOOKS['csrf_compliant']['controlhw'] = true;
+
+    // Reorder POST_INVENTORY only after every plugin has registered its hooks.
+    // This prevents a previous callback returning null from masking the inventory.
+    $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::POST_INIT]['controlhw'] = [
+        \GlpiPlugin\Controlhw\InventoryAuditor::class,
+        'prioritizePostInventoryHook',
+    ];
 
     // GLPI 11.0.11 calls this function hook after a successful inventory submission.
     $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::POST_INVENTORY]['controlhw'] = [
