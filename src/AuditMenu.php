@@ -2,13 +2,10 @@
 
 namespace GlpiPlugin\Controlhw;
 
-use CommonGLPI;
-use Session;
-
 /**
  * GLPI menu entry for the hardware audit console.
  */
-final class AuditMenu extends CommonGLPI
+final class AuditMenu extends \CommonGLPI
 {
     public static function getMenuName($nb = 0): string
     {
@@ -22,7 +19,7 @@ final class AuditMenu extends CommonGLPI
 
     public static function canView(): bool
     {
-        return Session::haveRight('computer', READ);
+        return \Session::haveRight('computer', READ);
     }
 
     public static function getMenuContent(): array
