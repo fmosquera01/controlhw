@@ -3,7 +3,7 @@
  * Control HW - Auditoría de Hardware para GLPI 11.
  */
 
-use GlpiPlugin\\Controlhw\\AuditMenu;
+use GlpiPlugin\Controlhw\AuditMenu;
 
 define('PLUGIN_CONTROLHW_VERSION', '0.3.0');
 define('PLUGIN_CONTROLHW_MIN_GLPI_VERSION', '11.0.11');
@@ -48,13 +48,13 @@ function plugin_init_controlhw(): void
     global $PLUGIN_HOOKS;
 
     $PLUGIN_HOOKS['csrf_compliant']['controlhw'] = true;
-    $PLUGIN_HOOKS[\\Glpi\\Plugin\\Hooks::POST_INVENTORY]['controlhw'] = [
-        \\GlpiPlugin\\Controlhw\\InventoryAuditor::class,
+    $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::POST_INVENTORY]['controlhw'] = [
+        \GlpiPlugin\Controlhw\InventoryAuditor::class,
         'onInventory',
     ];
 
     if (AuditMenu::canView()) {
-        $PLUGIN_HOOKS[\\Glpi\\Plugin\\Hooks::MENU_TOADD]['controlhw'] = [
+        $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::MENU_TOADD]['controlhw'] = [
             'tools' => AuditMenu::class,
         ];
     }
