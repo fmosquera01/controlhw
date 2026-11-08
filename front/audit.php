@@ -1,6 +1,5 @@
 <?php
 
-use GlpiPlugin\\Controlhw\\AuditMenu;
 use Html;
 
 include('../../../inc/includes.php');
@@ -27,7 +26,7 @@ $dateTo = controlhw_date_filter((string) ($_GET['date_to'] ?? ''));
 $computerId = max(0, (int) ($_GET['computer_id'] ?? 0));
 
 $allowedChanges = ['added', 'removed', 'modified', 'replaced'];
-$allowedStatuses = ['queued', 'pending', 'sent', 'error'];
+$allowedStatuses = ['queued', 'pending'];
 if (!in_array($changeType, $allowedChanges, true)) {
     $changeType = '';
 }
@@ -36,6 +35,9 @@ if (!in_array($status, $allowedStatuses, true)) {
 }
 
 $where = ['1 = 1'];
+if ($computerId > 0) {
+    $where[] = 's.computers_id = ' . $computerId;
+}
 if ($search !== '') {
     $needle = addslashes($search);
     $where[] = "(c.name LIKE '%{$needle}%'
@@ -195,7 +197,7 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
                 <label class="form-label" for="status">Estado Telegram</label>
                 <select class="form-select" id="status" name="status">
                     <option value="">Todos</option>
-                    <?php foreach (['queued' => 'Encolado', 'pending' => 'Pendiente', 'sent' => 'Enviado', 'error' => 'Error'] as $key => $label): ?>
+                    <?php foreach (['queued' => 'Encolado en FML Telegram', 'pending' => 'Pendiente de envío'] as $key => $label): ?>
                         <option value="<?= controlhw_h($key) ?>" <?= $status === $key ? 'selected' : '' ?>><?= controlhw_h($label) ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -277,7 +279,7 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
                         ]));
                     };
                     $changeLabels = ['added' => 'Agregado', 'removed' => 'Retirado', 'modified' => 'Modificado', 'replaced' => 'Reemplazado'];
-                    $statusLabels = ['queued' => 'Encolado', 'pending' => 'Pendiente', 'sent' => 'Enviado', 'error' => 'Error'];
+                    $statusLabels = ['queued' => 'Encolado en FML Telegram', 'pending' => 'Pendiente de envío'];
                 ?>
                     <tr>
                         <td><?= controlhw_h($alert['date_creation']) ?></td>
