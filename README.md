@@ -4,7 +4,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 - **Identificador:** `controlhw`
 - **Nombre:** Control HW – Auditoría de Hardware
-- **Versión:** 0.3.4
+- **Versión:** 0.3.5
 - **Repositorio:** https://github.com/fmosquera01/controlhw
 - **Rama:** `main`
 - **Compatibilidad objetivo:** GLPI 11.0.11
@@ -12,7 +12,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades d
 
 ## Panel de auditoría
 
-La versión 0.3.4 incorpora una página de consulta y registra el acceso al menú sin depender de la disponibilidad de permisos durante la inicialización y usa una clase compatible con CommonGLPI, requerida por el sistema de menús de GLPI en **Herramientas → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
+La versión 0.3.5 incorpora una página de consulta y registra el acceso bajo el sector Plugins, siguiendo el patrón oficial de GLPI, y construye la URL respetando la ruta base de la instalación y usa una clase compatible con CommonGLPI, requerida por el sistema de menús de GLPI en **Plugins → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
 
 - Resumen de equipos auditados, inventarios, cambios y notificaciones pendientes.
 - Historial de los últimos 100 inventarios.
@@ -51,7 +51,7 @@ En FML Telegram debe existir una suscripción activa para ese origen/evento y al
 2. Instalar y habilitar **FML Telegram** antes de activar las suscripciones de avisos.
 3. Instalar y habilitar Control HW desde la administración de plugins de GLPI.
 4. Otorgar al perfil correspondiente permiso de lectura de equipos.
-5. Entrar en **Herramientas → Control HW - Auditoría**. Si el menú ya estaba cargado en la sesión, cerrar y volver a iniciar sesión para regenerarlo.
+5. Entrar en **Plugins → Control HW - Auditoría**. Si el menú ya estaba cargado en la sesión, cerrar y volver a iniciar sesión para regenerarlo.
 6. Configurar en FML Telegram la suscripción `controlhw / hardware.changed`.
 7. Ejecutar inventarios de prueba y revisar los registros de auditoría.
 
@@ -78,4 +78,4 @@ La pantalla debe validarse en el GLPI de pruebas con perfiles de solo lectura y 
 
 ## Estado
 
-Versión 0.3.4: primera interfaz de consulta añadida al repositorio. El hook `POST_INVENTORY` procesa el objeto recibido en el parámetro `data` y evita imports globales redundantes; la consulta de componentes también incluye tipo de memoria, frecuencia, modelo de catálogo, tipo de disco e interfaz. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.
+Versión 0.3.5: primera interfaz de consulta añadida al repositorio. El hook `POST_INVENTORY` procesa el objeto recibido en el parámetro `data` y evita imports globales redundantes; la consulta de componentes también incluye tipo de memoria, frecuencia, modelo de catálogo, tipo de disco e interfaz. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.
