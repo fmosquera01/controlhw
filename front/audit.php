@@ -54,7 +54,7 @@ if ($computerId > 0) {
     $where[] = 's.computers_id = ' . $computerId;
 }
 if ($search !== '') {
-    $needle = addslashes($search);
+    $needle = $DB->escape($search);
     $where[] = "(c.name LIKE '%{$needle}%'
         OR EXISTS (
             SELECT 1 FROM glpi_plugin_controlhw_components cx
@@ -108,7 +108,7 @@ if ($computerId > 0) {
     $alertWhere[] = 'a.computers_id = ' . $computerId;
 }
 if ($search !== '') {
-    $needle = addslashes($search);
+    $needle = $DB->escape($search);
     $alertWhere[] = "(c.name LIKE '%{$needle}%'
         OR a.old_data LIKE '%{$needle}%'
         OR a.new_data LIKE '%{$needle}%')";
@@ -287,11 +287,17 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
                     $old = json_decode((string) $alert['old_data'], true) ?: [];
                     $new = json_decode((string) $alert['new_data'], true) ?: [];
                     $describe = static function (array $data): string {
+                        $details = is_array($data['details'] ?? null) ? $data['details'] : [];
                         return implode(' · ', array_filter([
                             $data['manufacturer'] ?? null,
                             $data['model'] ?? null,
                             $data['capacity'] ?? null,
                             !empty($data['serial']) ? 'S/N ' . $data['serial'] : null,
+                            !empty($data['slot']) ? 'Ubicación ' . $data['slot'] : null,
+                            !empty($details['memory_type']) ? 'Tipo ' . $details['memory_type'] : null,
+                            !empty($details['frequency_mhz']) ? $details['frequency_mhz'] . ' MHz' : null,
+                            !empty($details['disk_type']) ? $details['disk_type'] : null,
+                            !empty($details['interface_type']) ? $details['interface_type'] : null,
                         ]));
                     };
                     $changeLabels = ['added' => 'Agregado', 'removed' => 'Retirado', 'modified' => 'Modificado', 'replaced' => 'Reemplazado'];
