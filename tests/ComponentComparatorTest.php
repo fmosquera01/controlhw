@@ -2,8 +2,6 @@
 
 require_once __DIR__ . '/../src/ComponentComparator.php';
 
-use GlpiPlugin\Controlhw\ComponentComparator;
-
 function controlhwAssert(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -22,23 +20,26 @@ $ram = [
     'details' => ['frequency' => '3200'],
 ];
 
-$noChanges = ComponentComparator::compare([$ram], [$ram]);
+$noChanges = \GlpiPlugin\Controlhw\ComponentComparator::compare([$ram], [$ram]);
 controlhwAssert($noChanges === [], 'An unchanged inventory must not create alerts.');
 
 $added = $ram;
 $added['identity_key'] = 'serial:ram-b';
 $added['serial'] = 'RAM-B';
-$changes = ComponentComparator::compare([$ram], [$ram, $added]);
+$changes = \GlpiPlugin\Controlhw\ComponentComparator::compare([$ram], [$ram, $added]);
 controlhwAssert(count($changes) === 1 && $changes[0]['change_type'] === 'added', 'A new RAM module must be detected.');
 
 $replacement = $added;
 $replacement['slot'] = 'DIMM_A1';
-$changes = ComponentComparator::compare([$ram], [$replacement]);
+$changes = \GlpiPlugin\Controlhw\ComponentComparator::compare([$ram], [$replacement]);
 controlhwAssert(count($changes) === 1 && $changes[0]['change_type'] === 'replaced', 'A serial change in the same slot must be a replacement.');
 
 $modified = $ram;
 $modified['capacity'] = '32768';
-$changes = ComponentComparator::compare([$ram], [$modified]);
+$changes = \GlpiPlugin\Controlhw\ComponentComparator::compare([$ram], [$modified]);
 controlhwAssert(count($changes) === 1 && $changes[0]['change_type'] === 'modified', 'A capacity change must be detected.');
 
-echo "Control HW comparator tests passed.\n";
+$changes = \GlpiPlugin\Controlhw\ComponentComparator::compare([$ram], []);
+controlhwAssert(count($changes) === 1 && $changes[0]['change_type'] === 'removed', 'A removed component must be detected on a complete inventory.');
+
+echo "Control HW comparator tests passed.\\n";
