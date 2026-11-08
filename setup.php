@@ -53,9 +53,9 @@ function plugin_init_controlhw(): void
         'onInventory',
     ];
 
-    if (AuditMenu::canView()) {
-        $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::MENU_TOADD]['controlhw'] = [
-            'tools' => AuditMenu::class,
-        ];
-    }
+    // Register the menu unconditionally. Visibility is checked by AuditMenu::getMenuContent()
+    // after GLPI has initialized the active user's session and rights.
+    $PLUGIN_HOOKS[\Glpi\Plugin\Hooks::MENU_TOADD]['controlhw'] = [
+        'tools' => AuditMenu::class,
+    ];
 }
