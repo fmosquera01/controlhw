@@ -16,6 +16,18 @@ controlhwAssert(str_contains($setup, "'onInventory'"), 'POST_INVENTORY callback 
 controlhwAssert(!str_contains($setup, 'Hooks::ITEM_ADD'), 'Computer item_add must not replace POST_INVENTORY.');
 controlhwAssert(!str_contains($setup, 'Hooks::ITEM_UPDATE'), 'Computer item_update must not replace POST_INVENTORY.');
 
+// POST_INIT must move Control HW to the first callback position after all plugins load.
+$GLOBALS['PLUGIN_HOOKS']['post_inventory'] = [
+    'aaa_other_plugin' => static fn($params) => null,
+    'controlhw' => [\\GlpiPlugin\\Controlhw\\InventoryAuditor::class, 'onInventory'],
+    'zzz_other_plugin' => static fn($params) => $params,
+];
+\\GlpiPlugin\\Controlhw\\InventoryAuditor::prioritizePostInventoryHook();
+controlhwAssert(
+    array_key_first($GLOBALS['PLUGIN_HOOKS']['post_inventory']) === 'controlhw',
+    'Control HW must run before other POST_INVENTORY callbacks to receive the original inventory.'
+);
+
 $inventory = (object) ['deviceid' => 'agent-test-001'];
 $extract = new ReflectionMethod(\GlpiPlugin\Controlhw\InventoryAuditor::class, 'extractInventoryData');
 controlhwAssert($extract->invoke(null, $inventory) === $inventory, 'Raw inventory object must be accepted.');
