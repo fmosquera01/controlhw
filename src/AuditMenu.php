@@ -1,6 +1,6 @@
 <?php
 
-namespace GlpiPlugin\\Controlhw;
+namespace GlpiPlugin\Controlhw;
 
 use Session;
 
