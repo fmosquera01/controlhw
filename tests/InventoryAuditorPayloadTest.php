@@ -1,20 +1,27 @@
 <?php
 
+require_once __DIR__ . '/../src/InventoryAuditor.php';
+
+function controlhwAssert(bool $condition, string $message): void
+{
+    if (!$condition) {
+        throw new RuntimeException($message);
+    }
+}
+
 $setup = file_get_contents(__DIR__ . '/../setup.php');
-if (!is_string($setup)) {
-    throw new RuntimeException('Could not read setup.php.');
-}
+controlhwAssert(is_string($setup), 'Could not read setup.php.');
+controlhwAssert(str_contains($setup, 'Hooks::POST_INVENTORY'), 'POST_INVENTORY hook must be registered.');
+controlhwAssert(str_contains($setup, "'onInventory'"), 'POST_INVENTORY callback must be onInventory.');
+controlhwAssert(!str_contains($setup, 'Hooks::ITEM_ADD'), 'Computer item_add must not replace POST_INVENTORY.');
+controlhwAssert(!str_contains($setup, 'Hooks::ITEM_UPDATE'), 'Computer item_update must not replace POST_INVENTORY.');
 
-if (str_contains($setup, 'Hooks::POST_INVENTORY')) {
-    throw new RuntimeException('Unsupported POST_INVENTORY hook must not be registered.');
-}
+$inventory = (object) ['deviceid' => 'agent-test-001'];
+$extract = new ReflectionMethod(\GlpiPlugin\Controlhw\InventoryAuditor::class, 'extractInventoryData');
+controlhwAssert($extract->invoke(null, $inventory) === $inventory, 'Raw inventory object must be accepted.');
+controlhwAssert(
+    $extract->invoke(null, ['data' => $inventory]) === $inventory,
+    'Wrapped inventory data must remain supported.'
+);
 
-if (!str_contains($setup, 'Hooks::ITEM_ADD') || !str_contains($setup, 'Hooks::ITEM_UPDATE')) {
-    throw new RuntimeException('Computer add/update hooks must both be registered.');
-}
-
-if (!str_contains($setup, 'InventoryAuditor::class') || !str_contains($setup, "'onComputerChange'")) {
-    throw new RuntimeException('Computer audit callback is not registered.');
-}
-
-echo "Control HW inventory hook registration tests passed.\n";
+echo "Control HW POST_INVENTORY hook tests passed.\n";
