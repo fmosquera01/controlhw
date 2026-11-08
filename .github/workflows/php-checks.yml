@@ -27,3 +27,6 @@ jobs:
 
       - name: Test inventory hook payload
         run: php tests/InventoryAuditorPayloadTest.php
+
+      - name: Test component repository
+        run: php tests/ComponentRepositoryTest.php
