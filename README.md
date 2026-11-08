@@ -1,68 +1,59 @@
 # Control HW – Auditoría de Hardware
 
-Plugin independiente para GLPI 11 destinado a detectar cambios de memoria RAM y unidades de almacenamiento en los equipos inventariados por GLPI Agent.
+Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades de almacenamiento HDD/SSD/NVMe después de inventarios exitosos de GLPI Agent.
 
-## Alcance inicial
+- **Identificador:** `controlhw`
+- **Nombre:** Control HW – Auditoría de Hardware
+- **Repositorio:** https://github.com/fmosquera01/controlhw
+- **Rama:** `main`
+- **Compatibilidad objetivo:** GLPI 11.0.11
+- **Integración de avisos:** FML Telegram (plugin separado)
 
-- Plataforma: GLPI 11.
-- Identificador técnico: `controlhw`.
-- Componentes supervisados: memoria RAM y discos HDD/SSD/NVMe.
-- Momento de auditoría: después de cada inventario automático confirmado.
-- Notificaciones: Telegram Bot API.
-- Idioma de interfaz y notificaciones: español.
-- Rama de desarrollo: `main`.
+## Detección
 
-## Reglas funcionales
+- Primer inventario completo: crea línea base sin alertar.
+- Detecta RAM y discos agregados, retirados, sustituidos y modificados.
+- Identifica preferentemente por número de serie; si no existe, usa ubicación/slot y una huella de atributos.
+- Compara módulos/unidades individualmente, no solo la capacidad total.
+- Ignora inventarios marcados como parciales para evitar falsas alertas de retirada.
+- No vuelve a generar alertas si el inventario no presenta cambios.
+- Persiste snapshot y auditoría antes de intentar notificar.
 
-1. El primer inventario válido de cada equipo establece la línea base y no genera alertas.
-2. Cada inventario posterior se compara con la última fotografía aceptada.
-3. Se detectan componentes agregados, retirados y sustituidos, además de cambios de capacidad, fabricante o modelo.
-4. La comparación prioriza números de serie; cuando no existan, utiliza una huella compuesta y registra el nivel de certeza.
-5. Los cambios se guardan en auditoría antes de intentar notificar.
-6. Un mismo evento no debe generar notificaciones duplicadas.
-7. Los fallos de Telegram no eliminan la alerta; quedan pendientes de reintento.
-8. El plugin no modifica tablas ni registros nativos de GLPI.
+## Telegram
 
-## Arquitectura prevista
+Control HW no almacena tokens ni implementa un bot propio. Consume la API pública de FML Telegram:
 
-- Captura: integración con el ciclo de inventario automático de GLPI.
-- Normalización: conversión de los registros nativos de memoria y discos a una estructura estable.
-- Snapshot: fotografía por equipo y fecha de inventario.
-- Comparador: diferencias entre fotografías consecutivas.
-- Auditoría: eventos inmutables con valores anteriores y nuevos.
-- Notificaciones: cola persistente y envío HTTPS a Telegram.
-- Interfaz: configuración, tablero, alertas, historial y pestaña por equipo.
+`GlpiPlugin\\Telegram\\NotificationService::enqueue()`
 
-## Tablas propias previstas
+El evento emitido es:
+- Origen: `controlhw`
+- Evento: `hardware.changed`
 
-Todas usarán el prefijo `glpi_plugin_controlhw_`:
+En FML Telegram debe existir una suscripción activa para ese origen/evento y al menos un destino habilitado. FML Telegram conserva su propia cola, deduplicación y reintentos de entrega.
 
-- `snapshots`: fotografías de inventario.
-- `components`: componentes contenidos en cada fotografía.
-- `alerts`: eventos de cambio detectados.
-- `notifications`: intentos y estado de envío a Telegram.
-- `configs`: configuración del plugin.
+## Instalación de desarrollo
 
-El diseño definitivo de columnas e índices se cerrará después de validar el esquema real de GLPI 11 y el orden de ejecución de los hooks durante una importación de GLPI Agent.
+1. Copiar la carpeta del plugin como `plugins/controlhw`.
+2. Instalar y habilitar **FML Telegram** antes de activar las suscripciones de avisos.
+3. Instalar Control HW desde la administración de plugins de GLPI.
+4. Configurar en FML Telegram la suscripción `controlhw / hardware.changed`.
+5. Ejecutar inventarios de prueba y revisar los registros de auditoría.
 
-## Seguridad
+## Datos persistentes
 
-- El token del bot nunca se mostrará en claro después de guardarlo.
-- Se utilizará el mecanismo de cifrado compatible con la versión instalada de GLPI.
-- Las solicitudes a Telegram usarán HTTPS y tiempos de espera.
-- No se enviarán credenciales ni datos innecesarios del usuario final.
-- Los permisos de configuración y consulta estarán separados.
+Control HW crea únicamente tablas propias:
+- `glpi_plugin_controlhw_snapshots`
+- `glpi_plugin_controlhw_components`
+- `glpi_plugin_controlhw_alerts`
 
-## Plan de implementación
+Desinstalar el plugin no elimina el historial.
 
-1. Estructura del plugin, compatibilidad y migraciones.
-2. Captura de RAM y discos después de inventarios automáticos.
-3. Línea base, normalización y comparación.
-4. Registro de alertas y deduplicación.
-5. Configuración y envío a Telegram con reintentos.
-6. Tablero, pestañas e historial.
-7. Pruebas con inventarios reales y casos de sustitución.
+## Pruebas
+
+Ejecutar el test independiente del comparador:
+
+`php tests/ComponentComparatorTest.php`
 
 ## Estado
 
-Arquitectura inicial definida. La captura automática y el comparador se implementarán después de validar el flujo real de importación en la instalación GLPI 11 de destino.
+Primera implementación funcional en desarrollo. La captura se conecta al hook `POST_INVENTORY` de GLPI 11.0.11, resuelve el agente mediante `deviceid` y lee las relaciones nativas de memoria y discos una vez confirmado el inventario. Debe validarse en el GLPI de pruebas con inventarios reales antes de producción.

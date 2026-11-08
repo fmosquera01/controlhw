@@ -1,21 +1,21 @@
 <?php
 
-/**
- * Control HW plugin lifecycle.
- *
- * @copyright 2026
- * @license   GPL-3.0-or-later
- */
+use GlpiPlugin\Controlhw\Installer;
 
 function plugin_controlhw_install(): bool
 {
-    // Database migrations will be added with the first functional release.
-    return true;
+    return Installer::install();
 }
 
+function plugin_controlhw_upgrade($oldVersion): bool
+{
+    return Installer::install();
+}
+
+/**
+ * Audit records are intentionally retained on uninstall.
+ */
 function plugin_controlhw_uninstall(): bool
 {
-    // Uninstallation will preserve audit data unless an explicit,
-    // documented data-removal option is implemented.
     return true;
 }
