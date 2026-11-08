@@ -3,7 +3,6 @@
 namespace GlpiPlugin\Controlhw;
 
 use GlpiPlugin\Telegram\NotificationService;
-use Throwable;
 
 final class TelegramNotifier
 {
@@ -43,7 +42,7 @@ final class TelegramNotifier
                 'recipients' => [],
                 'deduplication_key' => 'controlhw-alert-' . $alertId,
             ]);
-        } catch (Throwable $exception) {
+        } catch (\Throwable $exception) {
             return ['queued' => 0, 'skipped' => 0, 'errors' => [$exception->getMessage()]];
         }
     }
