@@ -67,6 +67,42 @@ final class SnapshotService
         }
     }
 
+    /**
+     * Retry alerts that could not be handed to FML Telegram earlier.
+     * Retrying is opportunistic: it runs on the next successful inventory for this computer.
+     */
+    public static function retryPendingNotifications(int $computerId, string $computerName): void
+    {
+        global $DB;
+
+        foreach ($DB->request(
+            "SELECT id, component_type, change_type, old_data, new_data
+             FROM glpi_plugin_controlhw_alerts
+             WHERE computers_id = {$computerId}
+               AND notification_status = 'pending'
+             ORDER BY id ASC"
+        ) as $row) {
+            $old = $row['old_data'] !== null ? json_decode((string) $row['old_data'], true) : null;
+            $new = $row['new_data'] !== null ? json_decode((string) $row['new_data'], true) : null;
+            $change = [
+                'component_type' => $row['component_type'],
+                'change_type' => $row['change_type'],
+                'old' => is_array($old) ? $old : null,
+                'new' => is_array($new) ? $new : null,
+            ];
+
+            $result = TelegramNotifier::notify((int) $row['id'], $computerName, $computerId, $change);
+            $queued = (int) ($result['queued'] ?? 0);
+            $skipped = (int) ($result['skipped'] ?? 0);
+            $errors = $result['errors'] ?? [];
+
+            $DB->update('glpi_plugin_controlhw_alerts', [
+                'notification_status' => ($queued > 0 || $skipped > 0) ? 'queued' : 'pending',
+                'notification_error' => $errors === [] ? null : implode('; ', array_map('strval', $errors)),
+            ], ['id' => (int) $row['id']]);
+        }
+    }
+
     private static function latestSnapshot(int $computerId): ?array
     {
         global $DB;
