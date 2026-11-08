@@ -5,6 +5,26 @@ namespace GlpiPlugin\Controlhw;
 final class InventoryAuditor
 {
     /**
+     * Run after every plugin has initialized and move our function hook to the
+     * front. GLPI chains POST_INVENTORY return values; a previous callback that
+     * returns null would otherwise hide the valid inventory from this auditor.
+     */
+    public static function prioritizePostInventoryHook($params = null): void
+    {
+        global $PLUGIN_HOOKS;
+
+        $hook = 'post_inventory';
+        $callbacks = $PLUGIN_HOOKS[$hook] ?? [];
+        if (!is_array($callbacks) || !isset($callbacks['controlhw'])) {
+            return;
+        }
+
+        $controlhwCallback = ['controlhw' => $callbacks['controlhw']];
+        unset($callbacks['controlhw']);
+        $PLUGIN_HOOKS[$hook] = $controlhwCallback + $callbacks;
+    }
+
+    /**
      * GLPI 11 POST_INVENTORY passes the cleaned raw inventory object directly.
      * This hook is called only after GLPI has successfully processed the inventory.
      */
