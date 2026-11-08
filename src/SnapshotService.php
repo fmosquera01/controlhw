@@ -73,13 +73,15 @@ final class SnapshotService
     {
         global $DB;
 
-        foreach ($DB->request(
-            "SELECT id, component_type, change_type, old_data, new_data
-             FROM glpi_plugin_controlhw_alerts
-             WHERE computers_id = {$computerId}
-               AND notification_status = 'pending'
-             ORDER BY id ASC"
-        ) as $row) {
+        foreach ($DB->request([
+            'SELECT' => ['id', 'component_type', 'change_type', 'old_data', 'new_data'],
+            'FROM' => 'glpi_plugin_controlhw_alerts',
+            'WHERE' => [
+                'computers_id' => $computerId,
+                'notification_status' => 'pending',
+            ],
+            'ORDER' => ['id ASC'],
+        ]) as $row) {
             $old = $row['old_data'] !== null ? json_decode((string) $row['old_data'], true) : null;
             $new = $row['new_data'] !== null ? json_decode((string) $row['new_data'], true) : null;
             $change = [
@@ -105,12 +107,16 @@ final class SnapshotService
     {
         global $DB;
 
-        foreach ($DB->request(
-            "SELECT id, inventory_hash
-             FROM glpi_plugin_controlhw_snapshots
-             WHERE computers_id = {$computerId} AND is_complete = 1
-             ORDER BY id DESC LIMIT 1"
-        ) as $row) {
+        foreach ($DB->request([
+            'SELECT' => ['id', 'inventory_hash'],
+            'FROM' => 'glpi_plugin_controlhw_snapshots',
+            'WHERE' => [
+                'computers_id' => $computerId,
+                'is_complete' => 1,
+            ],
+            'ORDER' => ['id DESC'],
+            'LIMIT' => 1,
+        ]) as $row) {
             return $row;
         }
         return null;
@@ -121,13 +127,21 @@ final class SnapshotService
         global $DB;
 
         $components = [];
-        foreach ($DB->request(
-            "SELECT component_type, identity_key, serial, manufacturer, model,
-                    capacity, slot, details_json
-             FROM glpi_plugin_controlhw_components
-             WHERE snapshots_id = {$snapshotId}
-             ORDER BY id ASC"
-        ) as $row) {
+        foreach ($DB->request([
+            'SELECT' => [
+                'component_type',
+                'identity_key',
+                'serial',
+                'manufacturer',
+                'model',
+                'capacity',
+                'slot',
+                'details_json',
+            ],
+            'FROM' => 'glpi_plugin_controlhw_components',
+            'WHERE' => ['snapshots_id' => $snapshotId],
+            'ORDER' => ['id ASC'],
+        ]) as $row) {
             $details = json_decode((string) ($row['details_json'] ?? '{}'), true);
             $components[] = [
                 'component_type' => $row['component_type'],
