@@ -28,7 +28,9 @@ final class AuditMenu extends \CommonGLPI
             return [];
         }
 
-        $url = '/plugins/controlhw/front/audit.php';
+        global $CFG_GLPI;
+
+        $url = rtrim((string) ($CFG_GLPI['root_doc'] ?? ''), '/') . '/plugins/controlhw/front/audit.php';
 
         return [
             'title' => self::getMenuName(),
