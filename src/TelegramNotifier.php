@@ -13,7 +13,12 @@ final class TelegramNotifier
         }
 
         try {
-            $type = $change['component_type'] === 'ram' ? 'Memoria RAM' : 'Disco';
+            $type = match ($change['component_type']) {
+                'ram' => 'Memoria RAM',
+                'disk' => 'Unidad de almacenamiento',
+                'mac' => 'Dirección MAC de red',
+                default => 'Componente',
+            };
             $labels = [
                 'added' => 'Agregado',
                 'removed' => 'Retirado',
@@ -53,7 +58,9 @@ final class TelegramNotifier
             $component['manufacturer'] ?? null,
             $component['model'] ?? null,
             $component['capacity'] ?? null,
-            !empty($component['serial']) ? 'Serie ' . $component['serial'] : null,
+            !empty($component['serial'])
+                ? (($component['component_type'] ?? '') === 'mac' ? 'MAC ' : 'Serie ') . $component['serial']
+                : null,
             !empty($component['slot']) ? 'Ubicación ' . $component['slot'] : null,
         ], static fn ($value) => $value !== null && $value !== '');
 
