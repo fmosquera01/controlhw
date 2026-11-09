@@ -268,7 +268,7 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div>
             <h1><i class="ti ti-cpu"></i> Control HW - Auditoría de Hardware</h1>
-            <p class="text-muted mb-0">Historial de memoria RAM y unidades de almacenamiento detectadas por GLPI Agent.</p>
+            <p class="text-muted mb-0">Historial de memoria RAM, discos y direcciones MAC de red detectadas por GLPI Agent.</p>
         </div>
     </div>
 
@@ -326,13 +326,13 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
             </div>
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
-                    <thead><tr><th>Tipo</th><th>Fabricante</th><th>Modelo</th><th>Capacidad</th><th>Serie</th><th>Detalles</th><th>Slot / conexión</th></tr></thead>
+                    <thead><tr><th>Tipo</th><th>Fabricante</th><th>Modelo</th><th>Capacidad</th><th>Serie / MAC</th><th>Detalles</th><th>Slot / conexión</th></tr></thead>
                     <tbody>
                     <?php if ($latestComponents === []): ?>
                         <tr><td colspan="7" class="text-center text-muted">No hay componentes registrados en el último inventario.</td></tr>
                     <?php else: foreach ($latestComponents as $component): ?>
                         <tr>
-                            <td><?= controlhw_h($component['component_type'] === 'ram' ? 'Memoria RAM' : 'Disco') ?></td>
+                            <td><?= controlhw_h(match ($component['component_type']) { 'ram' => 'Memoria RAM', 'disk' => 'Disco', 'mac' => 'Dirección MAC', default => $component['component_type'] }) ?></td>
                             <td><?= controlhw_h($component['manufacturer']) ?></td>
                             <td><?= controlhw_h($component['model']) ?></td>
                             <td><?= controlhw_h($component['capacity']) ?></td>
@@ -386,7 +386,7 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
                             $data['manufacturer'] ?? null,
                             $data['model'] ?? null,
                             $data['capacity'] ?? null,
-                            !empty($data['serial']) ? 'S/N ' . $data['serial'] : null,
+                            !empty($data['serial']) ? (($data['component_type'] ?? '') === 'mac' ? 'MAC ' : 'S/N ') . $data['serial'] : null,
                             !empty($data['slot']) ? 'Ubicación ' . $data['slot'] : null,
                             !empty($details['memory_type']) ? 'Tipo ' . $details['memory_type'] : null,
                             !empty($details['frequency_mhz']) ? $details['frequency_mhz'] . ' MHz' : null,
@@ -400,7 +400,7 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
                     <tr>
                         <td><?= controlhw_h($alert['date_creation']) ?></td>
                         <td><a href="?computer_id=<?= (int) $alert['computers_id'] ?>"><?= controlhw_h($alert['computer_name']) ?></a></td>
-                        <td><?= controlhw_h($alert['component_type'] === 'ram' ? 'RAM' : 'Disco') ?></td>
+                        <td><?= controlhw_h(match ($alert['component_type']) { 'ram' => 'RAM', 'disk' => 'Disco', 'mac' => 'MAC de red', default => $alert['component_type'] }) ?></td>
                         <td><?= controlhw_h($changeLabels[$alert['change_type']] ?? $alert['change_type']) ?></td>
                         <td><?= controlhw_h($describe($old) ?: '—') ?></td>
                         <td><?= controlhw_h($describe($new) ?: '—') ?></td>
