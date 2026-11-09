@@ -1,10 +1,10 @@
 # Control HW – Auditoría de Hardware
 
-Plugin independiente para GLPI 11 que audita cambios de memoria RAM y unidades de almacenamiento HDD/SSD/NVMe después de inventarios exitosos de GLPI Agent.
+Plugin independiente para GLPI 11 que audita cambios de memoria RAM, unidades de almacenamiento HDD/SSD/NVMe y direcciones MAC de interfaces de red después de inventarios exitosos de GLPI Agent.
 
 - **Identificador:** `controlhw`
 - **Nombre:** Control HW – Auditoría de Hardware
-- **Versión:** 0.4.3
+- **Versión:** 0.4.4
 - **Repositorio:** https://github.com/fmosquera01/controlhw
 - **Rama:** `main`
 - **Compatibilidad objetivo:** GLPI 11.0.11
@@ -27,6 +27,7 @@ La pantalla consulta las tablas de auditoría existentes; no elimina ni reinicia
 
 - Primer inventario completo: crea línea base sin alertar.
 - Detecta RAM y discos agregados, retirados, sustituidos y modificados.
+- Registra las MAC de las interfaces de red y alerta cuando una dirección cambia, se agrega o desaparece; el mensaje identifica la MAC anterior y la nueva.
 - Identifica preferentemente por número de serie; si no existe, usa ubicación/slot y una huella de atributos.
 - Compara módulos/unidades individualmente, no solo la capacidad total.
 - Ignora inventarios marcados como parciales para evitar falsas alertas de retirada.
@@ -77,5 +78,7 @@ Ejecutar el test independiente del comparador:
 La pantalla debe validarse en el GLPI de pruebas con perfiles de solo lectura y administración, datos vacíos y equipos con alertas antes de producción. No se ha ejecutado una prueba de instalación ni de interfaz en el GLPI del usuario.
 
 ## Estado
+
+Versión 0.4.4: incorpora auditoría de direcciones MAC desde `glpi_networkports`, incluidas las interfaces Wi-Fi. Compara cada MAC por puerto lógico/interfaz, muestra el valor anterior y el nuevo y utiliza la regla FML Telegram existente `controlhw / hardware.changed`. El primer inventario sigue siendo línea base.
 
 Versión 0.4.3: registra una acción `POST_INIT` que, una vez inicializados todos los plugins, coloca el callback de Control HW al inicio de `POST_INVENTORY`. GLPI encadena los valores devueltos por esos callbacks; así se evita que un callback anterior que devuelva `null` prive al auditor del objeto de inventario original. El callback de Control HW conserva el parámetro al terminar. Debe validarse en GLPI de pruebas antes de producción.
