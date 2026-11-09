@@ -42,4 +42,27 @@ controlhwAssert(count($changes) === 1 && $changes[0]['change_type'] === 'modifie
 $changes = \GlpiPlugin\Controlhw\ComponentComparator::compare([$ram], []);
 controlhwAssert(count($changes) === 1 && $changes[0]['change_type'] === 'removed', 'A removed component must be detected on a complete inventory.');
 
+$oldMac = [
+    'component_type' => 'mac',
+    'identity_key' => 'serial:mac-old',
+    'serial' => 'AA:BB:CC:DD:EE:01',
+    'manufacturer' => null,
+    'model' => 'Wi-Fi',
+    'capacity' => null,
+    'slot' => 'Puerto 1 - Wi-Fi',
+    'details' => [],
+];
+$newMac = $oldMac;
+$newMac['identity_key'] = 'serial:mac-new';
+$newMac['serial'] = 'AA:BB:CC:DD:EE:02';
+$changes = \GlpiPlugin\Controlhw\ComponentComparator::compare([$oldMac], [$newMac]);
+controlhwAssert(
+    count($changes) === 1
+        && $changes[0]['component_type'] === 'mac'
+        && $changes[0]['change_type'] === 'replaced'
+        && $changes[0]['old']['serial'] === 'AA:BB:CC:DD:EE:01'
+        && $changes[0]['new']['serial'] === 'AA:BB:CC:DD:EE:02',
+    'A MAC address change on the same network interface must be detected as a replacement.'
+);
+
 echo "Control HW comparator tests passed.\\n";
