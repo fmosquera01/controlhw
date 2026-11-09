@@ -109,6 +109,42 @@ final class ComponentRepository
             ]);
         }
 
+        // Audit every reported network interface MAC, including Wi-Fi adapters.
+        // A stable port key lets the comparator identify a MAC replacement on the same interface.
+        $networkCriteria = [
+            'SELECT' => [
+                'np.mac',
+                'np.name AS port_name',
+                'np.logical_number',
+                'np.instantiation_type',
+                'np.is_dynamic',
+            ],
+            'FROM' => 'glpi_networkports AS np',
+            'WHERE' => [
+                'np.itemtype' => 'Computer',
+                'np.items_id' => $computerId,
+                'np.is_deleted' => 0,
+            ],
+        ];
+
+        foreach ($DB->request($networkCriteria) as $row) {
+            $mac = self::normalizeMac($row['mac'] ?? null);
+            if ($mac === null) {
+                continue;
+            }
+
+            $portName = self::clean($row['port_name'] ?? null) ?? 'Interfaz';
+            $logicalNumber = self::clean($row['logical_number'] ?? null);
+            $slot = ($logicalNumber !== null ? 'Puerto ' . $logicalNumber . ' - ' : '') . $portName;
+            $row['serial'] = $mac;
+            $row['model'] = $portName;
+            $row['slot'] = $slot;
+            $components[] = self::normalize('mac', $row, [
+                'network_port_type' => $row['instantiation_type'] ?? null,
+                'is_dynamic' => $row['is_dynamic'] ?? null,
+            ]);
+        }
+
         usort($components, static function (array $a, array $b): int {
             return [$a['component_type'], $a['identity_key'], $a['details_json']]
                 <=> [$b['component_type'], $b['identity_key'], $b['details_json']];
@@ -179,6 +215,22 @@ final class ComponentRepository
         }
         $value = trim((string) $value);
         return $value === '' ? null : $value;
+    }
+
+    private static function normalizeMac($value): ?string
+    {
+        $mac = self::clean($value);
+        if ($mac === null) {
+            return null;
+        }
+
+        $hex = strtoupper((string) preg_replace('/[^0-9A-F]/i', '', $mac));
+        if (strlen($hex) !== 12 || preg_match('/^[0-9A-F]{12}$/', $hex) !== 1
+            || $hex === '000000000000' || $hex === 'FFFFFFFFFFFF') {
+            return null;
+        }
+
+        return implode(':', str_split($hex, 2));
     }
 
     private static function validSerial(?string $serial): bool
