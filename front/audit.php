@@ -217,7 +217,7 @@ $alertsCriteria = [
     ],
     'WHERE' => $alertWhere,
     'ORDER' => ['a.date_creation DESC', 'a.id DESC'],
-    'LIMIT' => 200,
+    'LIMIT' => ($search !== '' || $changeType !== '' || $status !== '' || $dateFrom !== '' || $dateTo !== '' || $computerId > 0) ? 200 : 50,
 ];
 $alerts = [];
 foreach ($DB->request($alertsCriteria) as $row) {
@@ -348,29 +348,7 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
     <?php endif; ?>
 
     <div class="card mb-4">
-        <div class="card-header"><strong>Historial de inventarios</strong> <span class="text-muted">(últimos 100)</span></div>
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead><tr><th>Fecha</th><th>Equipo</th><th>Componentes</th><th>Cambios en este inventario</th><th></th></tr></thead>
-                <tbody>
-                <?php if ($historyRows === []): ?>
-                    <tr><td colspan="5" class="text-center text-muted p-4">Todavía no hay inventarios auditados. El primer inventario completo de cada equipo crea su línea base.</td></tr>
-                <?php else: foreach ($historyRows as $row): ?>
-                    <tr>
-                        <td><?= controlhw_h($row['date_creation']) ?></td>
-                        <td><?= controlhw_h($row['computer_name']) ?></td>
-                        <td><?= controlhw_h($row['components_count']) ?></td>
-                        <td><?= controlhw_h($row['changes_count']) ?></td>
-                        <td><a class="btn btn-sm btn-outline-primary" href="?computer_id=<?= (int) $row['computers_id'] ?>">Ver equipo</a></td>
-                    </tr>
-                <?php endforeach; endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header"><strong>Detalle de cambios detectados</strong> <span class="text-muted">(últimos 200)</span></div>
+        <div class="card-header"><strong>Detalle de cambios detectados</strong> <span class="text-muted"><?= ($search !== '' || $changeType !== '' || $status !== '' || $dateFrom !== '' || $dateTo !== '' || $computerId > 0) ? '(resultados filtrados, hasta 200)' : '(últimos 50)' ?></span></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead><tr><th>Fecha</th><th>Equipo</th><th>Componente</th><th>Cambio</th><th>Antes</th><th>Después</th><th>Telegram</th></tr></thead>
@@ -414,6 +392,35 @@ Html::header(__('Control HW - Auditoría', 'controlhw'), $_SERVER['PHP_SELF'], '
                 <?php endforeach; endif; ?>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div><strong>Historial de inventarios</strong> <span class="text-muted">(últimos 100)</span></div>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#controlhwInventoryHistory" aria-expanded="false" aria-controls="controlhwInventoryHistory">
+                <i class="ti ti-history"></i> Mostrar historial
+            </button>
+        </div>
+        <div class="collapse" id="controlhwInventoryHistory">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Fecha</th><th>Equipo</th><th>Componentes</th><th>Cambios en este inventario</th><th></th></tr></thead>
+                    <tbody>
+                    <?php if ($historyRows === []): ?>
+                        <tr><td colspan="5" class="text-center text-muted p-4">Todavía no hay inventarios auditados. El primer inventario completo de cada equipo crea su línea base.</td></tr>
+                    <?php else: foreach ($historyRows as $row): ?>
+                        <tr>
+                            <td><?= controlhw_h($row['date_creation']) ?></td>
+                            <td><?= controlhw_h($row['computer_name']) ?></td>
+                            <td><?= controlhw_h($row['components_count']) ?></td>
+                            <td><?= controlhw_h($row['changes_count']) ?></td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="?computer_id=<?= (int) $row['computers_id'] ?>">Ver equipo</a></td>
+                        </tr>
+                    <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
