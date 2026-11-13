@@ -4,7 +4,7 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM, unidades de
 
 - **Identificador:** `controlhw`
 - **Nombre:** Control HW – Auditoría de Hardware
-- **Versión:** 0.4.4
+- **Versión:** 0.4.5
 - **Repositorio:** https://github.com/fmosquera01/controlhw
 - **Rama:** `main`
 - **Compatibilidad objetivo:** GLPI 11.0.11
@@ -15,8 +15,8 @@ Plugin independiente para GLPI 11 que audita cambios de memoria RAM, unidades de
 La versión 0.4.2 corrigió las consultas del panel para usar el query builder de GLPI 11, evita SQL crudo y calcula los contadores sin subconsultas de agregación incompatibles. La página de consulta y registra el acceso bajo el sector Plugins, siguiendo el patrón oficial de GLPI, y construye la URL respetando la ruta base de la instalación y usa una clase compatible con CommonGLPI, requerida por el sistema de menús de GLPI en **Plugins → Control HW - Auditoría**. Requiere que el usuario tenga permiso de lectura de equipos en GLPI.
 
 - Resumen de equipos auditados, inventarios, cambios y notificaciones pendientes.
-- Historial de los últimos 100 inventarios.
-- Detalle de los últimos 200 cambios, con componente anterior y nuevo.
+- Detalle de los últimos 50 cambios por defecto, hasta 200 cuando se aplican filtros, con componente anterior y nuevo.
+- Historial de los últimos 100 inventarios, disponible bajo demanda mediante un botón al final del panel.
 - Consulta del último inventario de componentes por equipo.
 - Filtros por equipo, serie, modelo, fabricante, fechas, tipo de cambio y estado de Telegram.
 - Enlace al formulario del equipo en GLPI.
@@ -79,6 +79,6 @@ La pantalla debe validarse en el GLPI de pruebas con perfiles de solo lectura y 
 
 ## Estado
 
-Versión 0.4.4: incorpora auditoría de direcciones MAC desde `glpi_networkports`, incluidas las interfaces Wi-Fi. Compara cada MAC por puerto lógico/interfaz, muestra el valor anterior y el nuevo y utiliza la regla FML Telegram existente `controlhw / hardware.changed`. El primer inventario sigue siendo línea base.
+Versión 0.4.5: reorganiza el panel: muestra 50 cambios recientes por defecto, amplía hasta 200 al filtrar y deja el historial de 100 inventarios plegado detrás de un botón al final.\n\nVersión 0.4.4: incorpora auditoría de direcciones MAC desde `glpi_networkports`, incluidas las interfaces Wi-Fi. Compara cada MAC por puerto lógico/interfaz, muestra el valor anterior y el nuevo y utiliza la regla FML Telegram existente `controlhw / hardware.changed`. El primer inventario sigue siendo línea base.
 
 Versión 0.4.3: registra una acción `POST_INIT` que, una vez inicializados todos los plugins, coloca el callback de Control HW al inicio de `POST_INVENTORY`. GLPI encadena los valores devueltos por esos callbacks; así se evita que un callback anterior que devuelva `null` prive al auditor del objeto de inventario original. El callback de Control HW conserva el parámetro al terminar. Debe validarse en GLPI de pruebas antes de producción.
